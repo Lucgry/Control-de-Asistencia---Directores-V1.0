@@ -94,6 +94,29 @@ async function fetchAttendanceData() {
             let countRegistrados = 0;
             let countPresente = 0;
             let countTarde = 0;
+            let countAusente = 0; // Se inicializa el contador de Ausentes aquí.
+
+            // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            const cutoffHour = 22; // Hora de corte: 22 (10 PM)
+            const cutoffMinute = 50; // Minuto de corte: 50
+
+            // Función auxiliar para verificar si la hora de corte ha pasado
+            const hasCutoffPassed = (currentH, currentM, cutoffH, cutoffM) => {
+                if (currentH > cutoffH) {
+                    return true;
+                }
+                if (currentH === cutoffH && currentM >= cutoffM) {
+                    return true;
+                }
+                return false;
+            };
+
+            const isPastDeadline = hasCutoffPassed(currentHour, currentMinute, cutoffHour, cutoffMinute);
+            // --- FIN DE LA MODIFICACIÓN DE VARIABLES Y FUNCIÓN AUXILIAR ---
 
             const attendanceMap = new Map();
             todayAttendance.forEach(entry => {
@@ -111,55 +134,66 @@ async function fetchAttendanceData() {
                     const row = attendanceTableBody.insertRow();
                     row.insertCell(0).textContent = member; // Nombre (misma posición)
 
+                    let estadoDisplay = ''; // Variable para el estado a mostrar (se inicializa vacía)
+                    let horaDisplay = '-'; // Variable para la hora a mostrar
+                    let fechaDisplay = '-'; // Variable para la fecha a mostrar
+
                     if (attendanceMap.has(member)) {
                         const entry = attendanceMap.get(member);
+                        estadoDisplay = entry.estado;
+                        horaDisplay = entry.hora; // Asumo que entry.hora es un string como "HH:MM:SS"
+                        fechaDisplay = entry.fecha; // Asumo que entry.fecha es un string como "YYYY-MM-DD"
 
-                        // NUEVA POSICIÓN: Estado
-                        const statusCell = row.insertCell(1);
-                        statusCell.textContent = entry.estado;
-                        statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
-
-                        // NUEVA POSICIÓN: Fecha
-                        const rawDate = entry.fecha; // Ej: "2025-05-23"
-                        let formattedDate = '-';
-                        if (rawDate && typeof rawDate === 'string' && rawDate.includes('-')) {
-                            const parts = rawDate.split('-'); // ["2025", "05", "23"]
+                        // Re-formatear fecha para mostrar "DD/MM/AA"
+                        if (fechaDisplay && typeof fechaDisplay === 'string' && fechaDisplay.includes('-')) {
+                            const parts = fechaDisplay.split('-');
                             if (parts.length === 3) {
-                                formattedDate = `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`; // "23/05/25"
+                                fechaDisplay = `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`;
                             }
                         }
-                        row.insertCell(2).textContent = formattedDate;
 
-                        // NUEVA POSICIÓN: Hora
-                        const timeCell = row.insertCell(3);
-                        const rawTime = entry.hora;
-                        let formattedTime = '-';
-
-                        try {
-                            const dateObj = new Date(rawTime);
-                            if (!isNaN(dateObj.getTime())) {
-                                formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        // Re-formatear hora para mostrar "HH:MM"
+                        if (horaDisplay && typeof horaDisplay === 'string') {
+                            const timeParts = horaDisplay.split(':');
+                            if (timeParts.length >= 2) {
+                                horaDisplay = `${timeParts[0]}:${timeParts[1]}`; // Solo HH:MM
+                            } else {
+                                horaDisplay = '-'; // Fallback si no es un formato válido
                             }
-                        } catch (e) {
-                            console.error("Error al parsear la hora para", member, ":", rawTime, e);
+                        } else {
+                            horaDisplay = '-';
                         }
-                        timeCell.textContent = formattedTime;
 
                         countRegistrados++;
-                        if (entry.estado === 'Tarde') {
+                        if (estadoDisplay === 'Tarde') {
                             countTarde++;
-                        } else if (entry.estado === 'Presente') {
+                        } else if (estadoDisplay === 'Presente') {
                             countPresente++;
                         }
                     } else {
-                        // NUEVA POSICIÓN: Estado "Ausente"
-                        const statusCell = row.insertCell(1);
-                        statusCell.textContent = 'Ausente';
-                        statusCell.classList.add('status-cell', 'status-Ausente');
-
-                        row.insertCell(2).textContent = '-'; // NUEVA POSICIÓN: Fecha (vacía/guion)
-                        row.insertCell(3).textContent = '-'; // NUEVA POSICIÓN: Hora (vacía/guion)
+                        // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
+                        // Si el miembro no se registró, aplica la lógica de Ausente/Pendiente
+                        if (isPastDeadline) {
+                            estadoDisplay = 'Ausente';
+                            countAusente++; // Se incrementa el contador de ausentes solo si es realmente Ausente
+                        } else {
+                            // AQUÍ ESTÁ EL CAMBIO: Se deja la cadena vacía en lugar de 'Pendiente'
+                            estadoDisplay = ''; 
+                        }
+                        // fechaDisplay y horaDisplay permanecen como '-' por defecto
+                        // --- FIN DE LA MODIFICACIÓN ---
                     }
+
+                    // Renderizar la fila con el estado, fecha y hora determinados
+                    const statusCell = row.insertCell(1);
+                    statusCell.textContent = estadoDisplay;
+                    // Se añade la clase CSS solo si hay un estado para evitar clases como "status-"
+                    if (estadoDisplay) {
+                        statusCell.classList.add('status-cell', `status-${estadoDisplay.replace(/\s+/g, '')}`);
+                    }
+
+                    row.insertCell(2).textContent = fechaDisplay; // Fecha
+                    row.insertCell(3).textContent = horaDisplay; // Hora
                 });
             }
 
@@ -167,18 +201,11 @@ async function fetchAttendanceData() {
             totalPresentesSpan.textContent = countPresente;
             totalTardeSpan.textContent = countTarde;
 
-            // --- INICIO DE LA MODIFICACIÓN PARA "AUSENTES" ---
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-
-            // Si es después de las 23:05, muestra el conteo real de ausentes
-            if (currentHour > 23 || (currentHour === 23 && currentMinute >= 5)) {
-                totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
-            } else {
-                // De lo contrario, muestra "---"
-                totalAusentesSpan.textContent = '---';
-            }
+            // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
+            // El contador total de Ausentes ahora refleja directamente los que la lógica marcó como 'Ausente'.
+            totalAusentesSpan.textContent = countAusente;
+            // Se eliminó la condición de las 23:05 para que el total de Ausentes sea coherente
+            // con el estado individual de cada miembro según la nueva lógica de las 22:50.
             // --- FIN DE LA MODIFICACIÓN ---
 
         } else {
