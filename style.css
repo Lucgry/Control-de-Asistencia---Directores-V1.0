@@ -5,7 +5,7 @@ body {
     color: #ecf0f1; /* Blanco grisáceo */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: center; /* Mantiene la alineación al centro como lo tenías */
     min-height: 100vh;
     margin: 0;
     padding: 20px;
@@ -96,12 +96,14 @@ h2 {
     border-radius: 8px; /* Aplica bordes redondeados al contenedor del scroll */
 }
 
+/* Estilos de Tabla - ¡CORRECCIONES CLAVE AQUÍ! */
 table {
     width: 100%;
     border-collapse: collapse;
     background-color: #2c3e50;
-    /* Eliminado table-layout: fixed; para que las columnas se ajusten al contenido */
-    min-width: 600px; /* Ancho mínimo para la tabla, forzando el scroll en pantallas pequeñas si es necesario */
+    /* ¡IMPORTANTE! Vuelve a activar esta propiedad para un layout de columna fijo */
+    table-layout: fixed;
+    min-width: 600px; /* Ancho mínimo de la tabla antes de que se active el scroll horizontal */
 }
 
 th, td {
@@ -110,10 +112,32 @@ th, td {
     border-bottom: 1px solid #34495e;
     word-wrap: break-word; /* Permite que las palabras largas se rompan y pasen a la siguiente línea */
     white-space: normal; /* Asegura que el texto se envuelva */
+    vertical-align: middle; /* Alinea el contenido verticalmente en el centro */
 }
 
-/* Eliminadas las reglas de ancho fijo para th y td nth-child,
-   ahora los anchos son determinados por el contenido del navegador. */
+/* ¡DEFINICIÓN DE ANCHOS PARA CADA COLUMNA APLICADA DE NUEVO! */
+th:nth-child(1), /* Columna de Nombre */
+td:nth-child(1) {
+    width: 35%; /* Más espacio para el nombre */
+}
+
+th:nth-child(2), /* Columna de Estado */
+td:nth-child(2) {
+    width: 20%;
+    text-align: center; /* Centra el texto del estado */
+}
+
+th:nth-child(3), /* Columna de Fecha */
+td:nth-child(3) {
+    width: 25%;
+    text-align: center; /* Centra el texto de la fecha */
+}
+
+th:nth-child(4), /* Columna de Hora */
+td:nth-child(4) {
+    width: 20%;
+    text-align: center; /* Centra el texto de la hora */
+}
 
 th {
     background-color: #34495e;
@@ -150,7 +174,7 @@ tr.section-header {
     font-weight: 700;
     text-align: center;
     font-size: 1.2em;
-    position: sticky;
+    position: sticky; /* Permite que el encabezado de sección se "pegue" al hacer scroll */
     top: 0;
     z-index: 1;
 }
@@ -219,9 +243,28 @@ button:disabled {
         font-size: 1.6em;
     }
 
+    /* Ajuste de padding y font-size para celdas de tabla en móvil */
     th, td {
         padding: 8px 3px; /* Padding aún más reducido para móvil */
         font-size: 0.85em;
+    }
+
+    /* ¡RE-AJUSTADAS LAS REGLAS DE ANCHO DE COLUMNA PARA MÓVIL! */
+    th:nth-child(1),
+    td:nth-child(1) {
+        width: 30%; /* Ajusta el ancho para el nombre */
+    }
+    th:nth-child(2),
+    td:nth-child(2) {
+        width: 25%; /* Ajusta el ancho para el estado */
+    }
+    th:nth-child(3),
+    td:nth-child(3) {
+        width: 25%; /* Ajusta el ancho para la fecha */
+    }
+    th:nth-child(4),
+    td:nth-child(4) {
+        width: 20%; /* Ajusta el ancho para la hora */
     }
 
     tr.section-header td {
