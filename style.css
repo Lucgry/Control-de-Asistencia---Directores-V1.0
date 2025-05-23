@@ -85,7 +85,7 @@ h2 {
 
 .summary-item.registrados { color: #f1c40f; } /* Amarillo */
 .summary-item.presentes { color: #27ae60; } /* Verde para Presentes */
-.summary-item.tarde { color: #e67e22; } /* Naranja */
+.summary-item.tarde { color: #9b59b6; } /* Nuevo color: Morado (Amatista) */
 .summary-item.ausentes { color: #e74c3c; } /* Rojo */
 
 /* Contenedor de la tabla para permitir el scroll horizontal en móviles */
@@ -140,8 +140,8 @@ tbody tr:hover {
     font-weight: bold;
 }
 .status-cell.status-Presente { color: #27ae60; }
-.status-cell.status-Tarde { color: #e67e22; }
-.status-cell.status-Ausente { color: #e74c3c; }
+.status-cell.status-Tarde { color: #9b59b6; } /* Nuevo color: Morado (Amatista) */
+.status-cell.status-Ausente { color: #e74c3c; } /* Rojo */
 
 /* Estilos para los encabezados de cuerda */
 tr.section-header {
