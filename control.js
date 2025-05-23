@@ -4,7 +4,6 @@ const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEV
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
-const totalPresentesSpan = document.getElementById('total-presentes'); // ¡NUEVO SPAN!
 const totalTardeSpan = document.getElementById('total-tarde');
 const totalAusentesSpan = document.getElementById('total-ausentes');
 const lastUpdatedSpan = document.getElementById('last-updated');
@@ -93,14 +92,14 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const todayAttendance = result.data; // Ya está filtrado por hoy desde el script
 
-            let countRegistrados = 0; // Total de registrados (Presentes + Tardes)
-            let countPresente = 0; // ¡NUEVO CONTADOR!
+            let countRegistrados = 0;
             let countTarde = 0;
 
             // Crear un mapa para buscar rápidamente la asistencia de un coreuta
             const attendanceMap = new Map();
+            // En esta versión, no esperamos 'fecha' del script para evitar errores
             todayAttendance.forEach(entry => {
-                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha });
+                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado });
             });
 
             // Iterar por cada cuerda definida en allChoirMembersBySection
@@ -109,7 +108,7 @@ async function fetchAttendanceData() {
                 const sectionHeaderRow = attendanceTableBody.insertRow();
                 sectionHeaderRow.classList.add('section-header'); // Para estilizar con CSS
                 const headerCell = sectionHeaderRow.insertCell(0);
-                headerCell.colSpan = 4; // Sigue siendo 4 columnas
+                headerCell.colSpan = 3; // ¡VOLVEMOS A 3 COLUMNAS!
                 headerCell.textContent = sectionName;
 
                 // Iterar por cada miembro dentro de la cuerda (ya están ordenados alfabéticamente)
@@ -121,13 +120,10 @@ async function fetchAttendanceData() {
                         // El coreuta ha registrado hoy
                         const entry = attendanceMap.get(member);
 
-                        // Celda para la Fecha (Índice 1)
-                        row.insertCell(1).textContent = entry.fecha;
-
-                        // Celda para la Hora (Índice 2) - Con formato
-                        const timeCell = row.insertCell(2);
+                        // Celda para la Hora (Índice 1) - Con formato
+                        const timeCell = row.insertCell(1);
                         const rawTime = entry.hora;
-                        let formattedTime = '-';
+                        let formattedTime = '-'; // Valor por defecto si no se puede formatear
 
                         try {
                             const dateObj = new Date(rawTime);
@@ -137,25 +133,21 @@ async function fetchAttendanceData() {
                         } catch (e) {
                             console.error("Error al parsear la hora para", member, ":", rawTime, e);
                         }
-                        timeCell.textContent = formattedTime;
+                        timeCell.textContent = formattedTime; // Asignar la hora formateada
 
-                        // Celda para el Estado (Índice 3)
-                        const statusCell = row.insertCell(3);
+                        // Celda para el Estado (Índice 2)
+                        const statusCell = row.insertCell(2);
                         statusCell.textContent = entry.estado;
-                        // La clase ya se añade aquí, y el CSS se encargará del color
                         statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
 
-                        countRegistrados++; // Incrementa el total de registrados (Presente + Tarde)
+                        countRegistrados++; // Contar coreutas registrados
                         if (entry.estado === 'Tarde') {
                             countTarde++;
-                        } else if (entry.estado === 'Presente') { // ¡CONTAMOS PRESENTES!
-                            countPresente++;
                         }
                     } else {
                         // El coreuta NO ha registrado hoy (posible ausente)
-                        row.insertCell(1).textContent = '-'; // Celda Fecha (vacía)
-                        row.insertCell(2).textContent = '-'; // Celda Hora (vacía)
-                        const statusCell = row.insertCell(3); // Celda Estado
+                        row.insertCell(1).textContent = '-'; // Celda Hora (vacía)
+                        const statusCell = row.insertCell(2); // Celda Estado
                         statusCell.textContent = 'Ausente';
                         statusCell.classList.add('status-cell', 'status-Ausente');
                     }
@@ -163,8 +155,7 @@ async function fetchAttendanceData() {
             }
 
             // Actualizar contadores globales en la interfaz
-            totalRegistradosSpan.textContent = countRegistrados; // Total Registrados (Presentes + Tardes)
-            totalPresentesSpan.textContent = countPresente; // ¡Actualizamos el nuevo contador de Presentes!
+            totalRegistradosSpan.textContent = countRegistrados;
             totalTardeSpan.textContent = countTarde;
             totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
 
