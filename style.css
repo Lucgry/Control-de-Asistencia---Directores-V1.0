@@ -38,7 +38,7 @@ h2 {
 /* Estilo para el reloj */
 #current-time {
     color: #f1c40f; /* Amarillo */
-    font-size: 2.2em; /* Tamaño más grande para el reloj */
+    font-size: 2.2em; /* Tamaño un poco más chico como pediste */
     font-weight: 700;
     margin-bottom: 25px; /* Espacio debajo del reloj */
 }
@@ -94,13 +94,37 @@ table {
     background-color: #2c3e50; /* Fondo de tabla más oscuro */
     border-radius: 8px;
     overflow: hidden; /* Para que los bordes redondeados se apliquen al borde */
+    table-layout: fixed; /* ¡IMPORTANTE! Para que los anchos de columna fijos funcionen */
 }
 
 th, td {
-    padding: 12px 15px;
+    padding: 12px 5px; /* Reducido el padding horizontal para que las columnas sean más angostas */
     text-align: left;
     border-bottom: 1px solid #34495e; /* Bordes más sutiles */
+    word-wrap: break-word; /* Asegura que el texto largo se rompa y no desborde */
 }
+
+/* ¡NUEVOS ANCHOS PARA LAS 4 COLUMNAS! */
+#attendance-table th:nth-child(1),
+#attendance-table td:nth-child(1) {
+    width: 35%; /* Nombre */
+}
+
+#attendance-table th:nth-child(2),
+#attendance-table td:nth-child(2) {
+    width: 25%; /* Fecha */
+}
+
+#attendance-table th:nth-child(3),
+#attendance-table td:nth-child(3) {
+    width: 20%; /* Hora */
+}
+
+#attendance-table th:nth-child(4),
+#attendance-table td:nth-child(4) {
+    width: 20%; /* Estado */
+}
+
 
 th {
     background-color: #34495e; /* Encabezado de tabla */
