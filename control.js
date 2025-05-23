@@ -97,7 +97,7 @@ async function fetchAttendanceData() {
             // Crear un mapa para buscar rápidamente la asistencia de un coreuta
             const attendanceMap = new Map();
             todayAttendance.forEach(entry => {
-                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado });
+                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha }); // Añadir fecha al mapa
             });
 
             // Iterar por cada cuerda definida en allChoirMembersBySection
@@ -106,37 +106,40 @@ async function fetchAttendanceData() {
                 const sectionHeaderRow = attendanceTableBody.insertRow();
                 sectionHeaderRow.classList.add('section-header'); // Para estilizar con CSS
                 const headerCell = sectionHeaderRow.insertCell(0);
-                headerCell.colSpan = 3; // Ocupa las 3 columnas
+                headerCell.colSpan = 4; // ¡CAMBIADO DE 3 A 4! Ocupa las 4 columnas
                 headerCell.textContent = sectionName;
 
                 // Iterar por cada miembro dentro de la cuerda (ya están ordenados alfabéticamente)
                 allChoirMembersBySection[sectionName].forEach(member => {
                     const row = attendanceTableBody.insertRow();
-                    row.insertCell(0).textContent = member; // Nombre del coreuta
+                    row.insertCell(0).textContent = member; // Nombre del coreuta (Índice 0)
 
                     if (attendanceMap.has(member)) {
                         // El coreuta ha registrado hoy
                         const entry = attendanceMap.get(member);
-                        const timeCell = row.insertCell(1); // Celda para la Hora de Registro
-                        const rawTime = entry.hora; // Esto es "1899-12-30T13:11:57.000Z"
+
+                        // Celda para la Fecha (¡NUEVA, Índice 1!)
+                        row.insertCell(1).textContent = entry.fecha; // La fecha ya viene formateada (YYYY-MM-DD)
+
+                        // Celda para la Hora (Índice 2)
+                        const timeCell = row.insertCell(2);
+                        const rawTime = entry.hora;
                         let formattedTime = '-'; // Valor por defecto si no se puede formatear
 
                         try {
                             const dateObj = new Date(rawTime);
-                            // Verificar si la fecha es válida
+                            // Verificar si la fecha es válida antes de formatear
                             if (!isNaN(dateObj.getTime())) {
                                 // Formatear solo la hora (HH:MM en formato de 24 horas)
                                 formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                // Si prefieres 12 horas con AM/PM, usa la siguiente línea en su lugar:
-                                // formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
                             }
                         } catch (e) {
                             console.error("Error al parsear la hora para", member, ":", rawTime, e);
-                            // formattedTime ya es '-'
                         }
                         timeCell.textContent = formattedTime; // Asignar la hora formateada
 
-                        const statusCell = row.insertCell(2);
+                        // Celda para el Estado (Índice 3)
+                        const statusCell = row.insertCell(3);
                         statusCell.textContent = entry.estado;
                         statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
 
@@ -146,8 +149,9 @@ async function fetchAttendanceData() {
                         }
                     } else {
                         // El coreuta NO ha registrado hoy (posible ausente)
-                        row.insertCell(1).textContent = '-'; // No hay hora de registro
-                        const statusCell = row.insertCell(2);
+                        row.insertCell(1).textContent = '-'; // Celda Fecha (vacía)
+                        row.insertCell(2).textContent = '-'; // Celda Hora (vacía)
+                        const statusCell = row.insertCell(3); // Celda Estado
                         statusCell.textContent = 'Ausente';
                         statusCell.classList.add('status-cell', 'status-Ausente');
                     }
