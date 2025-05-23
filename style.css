@@ -38,7 +38,7 @@ h2 {
 /* Estilo para el reloj */
 #current-time {
     color: #f1c40f; /* Amarillo */
-    font-size: 2.5em; /* Tamaño más grande para el reloj */
+    font-size: 2.2em; /* Tamaño más grande para el reloj */
     font-weight: 700;
     margin-bottom: 25px; /* Espacio debajo del reloj */
 }
