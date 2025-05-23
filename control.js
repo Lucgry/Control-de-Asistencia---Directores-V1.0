@@ -113,13 +113,29 @@ async function fetchAttendanceData() {
                     if (attendanceMap.has(member)) {
                         const entry = attendanceMap.get(member);
 
-                        row.insertCell(1).textContent = entry.fecha;
+                        // **INICIO DE LA MODIFICACIÓN PARA EL FORMATO DE FECHA DD/MM/YY**
+                        const rawDate = entry.fecha; // Ej: "2025-05-23"
+                        let formattedDate = '-';
+                        if (rawDate && typeof rawDate === 'string' && rawDate.includes('-')) {
+                            const parts = rawDate.split('-'); // ["2025", "05", "23"]
+                            if (parts.length === 3) {
+                                // Obtenemos el día (índice 2), el mes (índice 1) y los dos últimos dígitos del año (índice 0)
+                                formattedDate = `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`; // "23/05/25"
+                            }
+                        }
+                        row.insertCell(1).textContent = formattedDate;
+                        // **FIN DE LA MODIFICACIÓN PARA EL FORMATO DE FECHA**
 
                         const timeCell = row.insertCell(2);
                         const rawTime = entry.hora;
                         let formattedTime = '-';
 
                         try {
+                            // Intentamos crear un objeto Date. Si rawTime es solo "HH:MM:SS",
+                            // Date.parse puede necesitar un prefijo de fecha para funcionar consistentemente
+                            // o dependerá del navegador. Si Google Sheets ya envía un formato de fecha válido
+                            // como parte de 'hora' (ej. "2025-05-23T10:30:00"), esto funcionará bien.
+                            // Si solo es "HH:MM:SS", una opción es añadir una fecha dummy: `new Date('2000-01-01T' + rawTime)`
                             const dateObj = new Date(rawTime);
                             if (!isNaN(dateObj.getTime())) {
                                 formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -140,8 +156,8 @@ async function fetchAttendanceData() {
                             countPresente++;
                         }
                     } else {
-                        row.insertCell(1).textContent = '-';
-                        row.insertCell(2).textContent = '-';
+                        row.insertCell(1).textContent = '-'; // Celda Fecha (vacía/guion)
+                        row.insertCell(2).textContent = '-'; // Celda Hora (vacía/guion)
                         const statusCell = row.insertCell(3);
                         statusCell.textContent = 'Ausente';
                         statusCell.classList.add('status-cell', 'status-Ausente');
