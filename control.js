@@ -5,12 +5,13 @@ const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
 const totalPresentesSpan = document.getElementById('total-presentes');
 const totalTardeSpan = document.getElementById('total-tarde');
-const totalAusentesSpan = document.getElementById('total-ausentes');
+const totalAusentesSpan = document.getElementById('total-ausentes'); // Este es el span para Ausentes
 const lastUpdatedSpan = document.getElementById('last-updated');
 const refreshButton = document.getElementById('refresh-button');
-const loadingMessage = document.getElementById('loading-message');
 const currentDateDisplay = document.getElementById('current-date');
 const currentTimeDisplay = document.getElementById('current-time');
+const loadingMessage = document.getElementById('loading-message'); // Asegurarse de que este elemento existe en tu HTML
+
 
 // Miembros del coro, organizados por cuerda y ordenados alfabéticamente
 // ¡IMPORTANTE! Asegúrate de que esta lista sea EXACTA con los nombres en tu planilla.
@@ -165,7 +166,20 @@ async function fetchAttendanceData() {
             totalRegistradosSpan.textContent = countRegistrados;
             totalPresentesSpan.textContent = countPresente;
             totalTardeSpan.textContent = countTarde;
-            totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
+
+            // --- INICIO DE LA MODIFICACIÓN PARA "AUSENTES" ---
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // Si es después de las 23:05, muestra el conteo real de ausentes
+            if (currentHour > 23 || (currentHour === 23 && currentMinute >= 5)) {
+                totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
+            } else {
+                // De lo contrario, muestra "---"
+                totalAusentesSpan.textContent = '---';
+            }
+            // --- FIN DE LA MODIFICACIÓN ---
 
         } else {
             console.error('Error al obtener datos:', result.message);
