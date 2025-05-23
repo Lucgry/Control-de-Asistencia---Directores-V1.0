@@ -114,7 +114,7 @@ th, td {
 /* Anchos para las 4 columnas (en pantallas de escritorio) */
 #attendance-table th:nth-child(1),
 #attendance-table td:nth-child(1) {
-    width: 40%; /* Nombre - Aumentado para acercar Estado */
+    width: 30%; /* Nombre - Reducido para desplazar 'Estado' a la izquierda */
 }
 
 #attendance-table th:nth-child(2),
@@ -124,12 +124,12 @@ th, td {
 
 #attendance-table th:nth-child(3),
 #attendance-table td:nth-child(3) {
-    width: 20%; /* Fecha - Reducido para compensar */
+    width: 25%; /* Fecha - Aumentado para compensar */
 }
 
 #attendance-table th:nth-child(4),
 #attendance-table td:nth-child(4) {
-    width: 25%; /* Hora - Se mantiene igual */
+    width: 30%; /* Hora - Aumentado para compensar */
 }
 
 th {
