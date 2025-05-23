@@ -1,8 +1,10 @@
 // ** ¡LA ÚLTIMA URL DE GOOGLE APPS SCRIPT PARA LECTURA QUE ME DISTE! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwCI3qlLh6dCFGMIK2QfOY3yJeIjgXVHCWLbRxQ8Fot9B_3lgfJA6020j9ae5H01JpeZQ/exec';
+// Usamos la URL que tienes guardada y la que aparece en tu control.js
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEVkvQ7eCh0FT9pPHlLL7veqTfOiyp7_0uGCOx6qxuKIeXXheXL-62IQIopz7weQ/exec';
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
+const totalPresentesSpan = document.getElementById('total-presentes'); // ¡NUEVO SPAN!
 const totalTardeSpan = document.getElementById('total-tarde');
 const totalAusentesSpan = document.getElementById('total-ausentes');
 const lastUpdatedSpan = document.getElementById('last-updated');
@@ -91,13 +93,14 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const todayAttendance = result.data; // Ya está filtrado por hoy desde el script
 
-            let countRegistrados = 0;
+            let countRegistrados = 0; // Total de registrados (Presentes + Tardes)
+            let countPresente = 0; // ¡NUEVO CONTADOR!
             let countTarde = 0;
 
             // Crear un mapa para buscar rápidamente la asistencia de un coreuta
             const attendanceMap = new Map();
             todayAttendance.forEach(entry => {
-                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha }); // Añadir fecha al mapa
+                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha });
             });
 
             // Iterar por cada cuerda definida en allChoirMembersBySection
@@ -106,7 +109,7 @@ async function fetchAttendanceData() {
                 const sectionHeaderRow = attendanceTableBody.insertRow();
                 sectionHeaderRow.classList.add('section-header'); // Para estilizar con CSS
                 const headerCell = sectionHeaderRow.insertCell(0);
-                headerCell.colSpan = 4; // ¡CAMBIADO DE 3 A 4! Ocupa las 4 columnas
+                headerCell.colSpan = 4; // Sigue siendo 4 columnas
                 headerCell.textContent = sectionName;
 
                 // Iterar por cada miembro dentro de la cuerda (ya están ordenados alfabéticamente)
@@ -118,34 +121,35 @@ async function fetchAttendanceData() {
                         // El coreuta ha registrado hoy
                         const entry = attendanceMap.get(member);
 
-                        // Celda para la Fecha (¡NUEVA, Índice 1!)
-                        row.insertCell(1).textContent = entry.fecha; // La fecha ya viene formateada (YYYY-MM-DD)
+                        // Celda para la Fecha (Índice 1)
+                        row.insertCell(1).textContent = entry.fecha;
 
-                        // Celda para la Hora (Índice 2)
+                        // Celda para la Hora (Índice 2) - Con formato
                         const timeCell = row.insertCell(2);
                         const rawTime = entry.hora;
-                        let formattedTime = '-'; // Valor por defecto si no se puede formatear
+                        let formattedTime = '-';
 
                         try {
                             const dateObj = new Date(rawTime);
-                            // Verificar si la fecha es válida antes de formatear
                             if (!isNaN(dateObj.getTime())) {
-                                // Formatear solo la hora (HH:MM en formato de 24 horas)
                                 formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                             }
                         } catch (e) {
                             console.error("Error al parsear la hora para", member, ":", rawTime, e);
                         }
-                        timeCell.textContent = formattedTime; // Asignar la hora formateada
+                        timeCell.textContent = formattedTime;
 
                         // Celda para el Estado (Índice 3)
                         const statusCell = row.insertCell(3);
                         statusCell.textContent = entry.estado;
+                        // La clase ya se añade aquí, y el CSS se encargará del color
                         statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
 
-                        countRegistrados++; // Contar coreutas registrados
+                        countRegistrados++; // Incrementa el total de registrados (Presente + Tarde)
                         if (entry.estado === 'Tarde') {
-                            countTarde++; // Contar llegadas tarde
+                            countTarde++;
+                        } else if (entry.estado === 'Presente') { // ¡CONTAMOS PRESENTES!
+                            countPresente++;
                         }
                     } else {
                         // El coreuta NO ha registrado hoy (posible ausente)
@@ -159,9 +163,9 @@ async function fetchAttendanceData() {
             }
 
             // Actualizar contadores globales en la interfaz
-            totalRegistradosSpan.textContent = countRegistrados;
+            totalRegistradosSpan.textContent = countRegistrados; // Total Registrados (Presentes + Tardes)
+            totalPresentesSpan.textContent = countPresente; // ¡Actualizamos el nuevo contador de Presentes!
             totalTardeSpan.textContent = countTarde;
-            // El total de ausentes es el total de miembros de la lista completa menos los registrados
             totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
 
         } else {
@@ -174,7 +178,6 @@ async function fetchAttendanceData() {
     } finally {
         loadingMessage.style.display = 'none'; // Ocultar mensaje de carga
         refreshButton.disabled = false; // Habilitar botón
-        // Mueve la actualización de la hora de última actualización aquí para que se haga después de la carga
         lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
     }
 }
@@ -183,13 +186,9 @@ async function fetchAttendanceData() {
 refreshButton.addEventListener('click', fetchAttendanceData);
 
 // --- INICIO CÓDIGO RELOJ Y FECHA ---
-// Llama a updateClock() una vez al inicio para mostrar el reloj y la fecha inmediatamente
 updateClock();
-// Luego, actualiza el reloj y la fecha cada segundo
 setInterval(updateClock, 1000);
 // --- FIN CÓDIGO RELOJ Y FECHA ---
 
-// Cargar datos de asistencia al iniciar la página (después de iniciar el reloj)
+// Cargar datos de asistencia al iniciar la página
 fetchAttendanceData();
-// Opcional: Actualizar datos de asistencia automáticamente cada cierto tiempo (ej. cada 30 segundos)
-// setInterval(fetchAttendanceData, 30000);
