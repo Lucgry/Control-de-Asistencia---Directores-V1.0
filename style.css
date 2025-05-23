@@ -105,7 +105,7 @@ table {
 }
 
 th, td {
-    padding: 12px 5px; /* Padding reducido a 5px horizontal para ajustar más */
+    padding: 12px 5px; /* Padding ajustado */
     text-align: left;
     border-bottom: 1px solid #34495e;
     word-wrap: break-word; /* Permite que las palabras largas se rompan y pasen a la siguiente línea */
@@ -114,22 +114,22 @@ th, td {
 /* Anchos para las 4 columnas (en pantallas de escritorio) */
 #attendance-table th:nth-child(1),
 #attendance-table td:nth-child(1) {
-    width: 50%; /* Nombre - Ahora ocupa la mitad de la tabla */
+    width: 25%; /* Nombre - Reducido al mínimo. Nombres largos pueden envolverse. */
 }
 
 #attendance-table th:nth-child(2),
 #attendance-table td:nth-child(2) {
-    width: 19%; /* Estado - Ajustado al tamaño mínimo viable */
+    width: 25%; /* Estado - Ajustado al espacio restante */
 }
 
 #attendance-table th:nth-child(3),
 #attendance-table td:nth-child(3) {
-    width: 19%; /* Fecha - Ajustado al tamaño de DD/MM/YY */
+    width: 25%; /* Fecha - Ajustado al espacio restante */
 }
 
 #attendance-table th:nth-child(4),
 #attendance-table td:nth-child(4) {
-    width: 12%; /* Hora - Ajustado al tamaño de HH:MM */
+    width: 25%; /* Hora - Ajustado al espacio restante */
 }
 
 th {
