@@ -1,9 +1,10 @@
-// ** ¡LA ÚLTIMA URL DE GOOGLE APPS SCRIPT PARA LECTURA QUE ME DISTE! **
-// Usamos la URL que tienes guardada y la que aparece en tu control.js
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEVkvQ7eCh0FT9pPHlLL7veqTfOiyp7_0uGCOx6qxuKIeXXheXL-62IQIopz7weQ/exec';
+// ** ¡LA URL DE TU GOOGLE APPS SCRIPT! **
+// Mantenemos la URL que nos proporcionaste y tienes guardada.
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwCI3qlLh6dCFGMIK2QfOY3yJeIjgXVHCWLbRxQ8Fot9B_3lgfJA6020j9ae5H01JpeZQ/exec';
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
+const totalPresentesSpan = document.getElementById('total-presentes'); // ¡NUEVO SPAN!
 const totalTardeSpan = document.getElementById('total-tarde');
 const totalAusentesSpan = document.getElementById('total-ausentes');
 const lastUpdatedSpan = document.getElementById('last-updated');
@@ -92,14 +93,15 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const todayAttendance = result.data; // Ya está filtrado por hoy desde el script
 
-            let countRegistrados = 0;
+            let countRegistrados = 0; // Total de registrados (Presentes + Tardes)
+            let countPresente = 0; // ¡NUEVO CONTADOR!
             let countTarde = 0;
 
             // Crear un mapa para buscar rápidamente la asistencia de un coreuta
             const attendanceMap = new Map();
-            // En esta versión, no esperamos 'fecha' del script para evitar errores
+            // ¡IMPORTANTE! Esperamos que el script de Google Sheets envíe 'fecha'
             todayAttendance.forEach(entry => {
-                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado });
+                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha });
             });
 
             // Iterar por cada cuerda definida en allChoirMembersBySection
@@ -108,7 +110,7 @@ async function fetchAttendanceData() {
                 const sectionHeaderRow = attendanceTableBody.insertRow();
                 sectionHeaderRow.classList.add('section-header'); // Para estilizar con CSS
                 const headerCell = sectionHeaderRow.insertCell(0);
-                headerCell.colSpan = 3; // ¡VOLVEMOS A 3 COLUMNAS!
+                headerCell.colSpan = 4; // ¡AHORA SON 4 COLUMNAS!
                 headerCell.textContent = sectionName;
 
                 // Iterar por cada miembro dentro de la cuerda (ya están ordenados alfabéticamente)
@@ -120,10 +122,14 @@ async function fetchAttendanceData() {
                         // El coreuta ha registrado hoy
                         const entry = attendanceMap.get(member);
 
-                        // Celda para la Hora (Índice 1) - Con formato
-                        const timeCell = row.insertCell(1);
+                        // Celda para la Fecha (Índice 1)
+                        // Si el script de Google Sheets NO envía 'fecha', esto podría mostrar 'undefined'
+                        row.insertCell(1).textContent = entry.fecha; 
+
+                        // Celda para la Hora (Índice 2) - Con formato
+                        const timeCell = row.insertCell(2);
                         const rawTime = entry.hora;
-                        let formattedTime = '-'; // Valor por defecto si no se puede formatear
+                        let formattedTime = '-';
 
                         try {
                             const dateObj = new Date(rawTime);
@@ -133,21 +139,25 @@ async function fetchAttendanceData() {
                         } catch (e) {
                             console.error("Error al parsear la hora para", member, ":", rawTime, e);
                         }
-                        timeCell.textContent = formattedTime; // Asignar la hora formateada
+                        timeCell.textContent = formattedTime;
 
-                        // Celda para el Estado (Índice 2)
-                        const statusCell = row.insertCell(2);
+                        // Celda para el Estado (Índice 3)
+                        const statusCell = row.insertCell(3);
                         statusCell.textContent = entry.estado;
+                        // La clase ya se añade aquí, y el CSS se encargará del color
                         statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
 
-                        countRegistrados++; // Contar coreutas registrados
+                        countRegistrados++; // Incrementa el total de registrados (Presente + Tarde)
                         if (entry.estado === 'Tarde') {
                             countTarde++;
+                        } else if (entry.estado === 'Presente') { // ¡CONTAMOS PRESENTES!
+                            countPresente++;
                         }
                     } else {
                         // El coreuta NO ha registrado hoy (posible ausente)
-                        row.insertCell(1).textContent = '-'; // Celda Hora (vacía)
-                        const statusCell = row.insertCell(2); // Celda Estado
+                        row.insertCell(1).textContent = '-'; // Celda Fecha (vacía)
+                        row.insertCell(2).textContent = '-'; // Celda Hora (vacía)
+                        const statusCell = row.insertCell(3); // Celda Estado
                         statusCell.textContent = 'Ausente';
                         statusCell.classList.add('status-cell', 'status-Ausente');
                     }
@@ -155,17 +165,20 @@ async function fetchAttendanceData() {
             }
 
             // Actualizar contadores globales en la interfaz
-            totalRegistradosSpan.textContent = countRegistrados;
+            totalRegistradosSpan.textContent = countRegistrados; // Total Registrados (Presentes + Tardes)
+            totalPresentesSpan.textContent = countPresente; // ¡Actualizamos el nuevo contador de Presentes!
             totalTardeSpan.textContent = countTarde;
             totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
 
         } else {
+            // Este bloque se ejecuta si el script devuelve un JSON pero con status: "error" o similar
             console.error('Error al obtener datos:', result.message);
             alert('Error al cargar la asistencia: ' + result.message);
         }
     } catch (error) {
+        // Este bloque se ejecuta si hay un problema de red, si la URL es incorrecta, o si la respuesta NO es JSON válido
         console.error('Error de conexión o de red:', error);
-        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
+        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script. O puede que el script de Google Sheets no esté funcionando.');
     } finally {
         loadingMessage.style.display = 'none'; // Ocultar mensaje de carga
         refreshButton.disabled = false; // Habilitar botón
