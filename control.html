@@ -22,7 +22,8 @@
             <div class="summary-item registrados">
                 Total Registrados:<br><span id="total-registrados">0</span>
             </div>
-            <div class="summary-item presentes"> Total Presentes:<br><span id="total-presentes">0</span>
+            <div class="summary-item presentes">
+                Total Presentes:<br><span id="total-presentes">0</span>
             </div>
             <div class="summary-item tarde">
                 Llegadas Tarde:<br><span id="total-tarde">0</span>
@@ -35,18 +36,20 @@
         <button id="refresh-button">Actualizar Datos</button>
         <div id="loading-message" class="loading-message" style="display: none;">Cargando datos...</div>
 
-        <table id="attendance-table">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Fecha</th> <th>Hora</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
-        <p id="last-updated"></p>
+        <div class="table-wrapper">
+            <table id="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div> <p id="last-updated"></p>
     </div>
     <script src="control.js"></script>
 </body>
