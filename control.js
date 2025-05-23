@@ -1,5 +1,5 @@
 // ** ¡LA ÚLTIMA URL DE GOOGLE APPS SCRIPT PARA LECTURA QUE ME DISTE! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwCI3qlLh6dCFGMIK2QfOY3yJeIjgXVHCWLbRxQ8Fot9B_3lgfJA6020j9ae5H01JpeZQ/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwCI3qlLh6dCFGMIK2QfOY3yJeIjgXVHCWLbRxQ8Fot9B_3lgfJA6020j9ae5H01JpeZQ/exec';
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
@@ -66,12 +66,12 @@ function updateClock() {
         second: '2-digit',
         hour12: false // Formato de 24 horas
     };
-    
-    const opcionesFecha = { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
+
+    const opcionesFecha = {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
     };
 
     currentTimeDisplay.textContent = ahora.toLocaleTimeString(zona, opcionesHora);
@@ -93,7 +93,7 @@ async function fetchAttendanceData() {
 
             let countRegistrados = 0;
             let countTarde = 0;
-            
+
             // Crear un mapa para buscar rápidamente la asistencia de un coreuta
             const attendanceMap = new Map();
             todayAttendance.forEach(entry => {
@@ -117,10 +117,28 @@ async function fetchAttendanceData() {
                     if (attendanceMap.has(member)) {
                         // El coreuta ha registrado hoy
                         const entry = attendanceMap.get(member);
-                        row.insertCell(1).textContent = entry.hora; // Hora de registro
+                        const timeCell = row.insertCell(1); // Celda para la Hora de Registro
+                        const rawTime = entry.hora; // Esto es "1899-12-30T13:11:57.000Z"
+                        let formattedTime = '-'; // Valor por defecto si no se puede formatear
+
+                        try {
+                            const dateObj = new Date(rawTime);
+                            // Verificar si la fecha es válida
+                            if (!isNaN(dateObj.getTime())) {
+                                // Formatear solo la hora (HH:MM en formato de 24 horas)
+                                formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                // Si prefieres 12 horas con AM/PM, usa la siguiente línea en su lugar:
+                                // formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                            }
+                        } catch (e) {
+                            console.error("Error al parsear la hora para", member, ":", rawTime, e);
+                            // formattedTime ya es '-'
+                        }
+                        timeCell.textContent = formattedTime; // Asignar la hora formateada
+
                         const statusCell = row.insertCell(2);
                         statusCell.textContent = entry.estado;
-                        statusCell.classList.add('status-cell', entry.estado);
+                        statusCell.classList.add('status-cell', `status-${entry.estado.replace(/\s/g, '-')}`);
 
                         countRegistrados++; // Contar coreutas registrados
                         if (entry.estado === 'Tarde') {
@@ -131,7 +149,7 @@ async function fetchAttendanceData() {
                         row.insertCell(1).textContent = '-'; // No hay hora de registro
                         const statusCell = row.insertCell(2);
                         statusCell.textContent = 'Ausente';
-                        statusCell.classList.add('status-cell', 'Ausente');
+                        statusCell.classList.add('status-cell', 'status-Ausente');
                     }
                 });
             }
@@ -140,8 +158,8 @@ async function fetchAttendanceData() {
             totalRegistradosSpan.textContent = countRegistrados;
             totalTardeSpan.textContent = countTarde;
             // El total de ausentes es el total de miembros de la lista completa menos los registrados
-            totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados; 
-            
+            totalAusentesSpan.textContent = allChoirMembersFlat.length - countRegistrados;
+
         } else {
             console.error('Error al obtener datos:', result.message);
             alert('Error al cargar la asistencia: ' + result.message);
@@ -162,9 +180,9 @@ refreshButton.addEventListener('click', fetchAttendanceData);
 
 // --- INICIO CÓDIGO RELOJ Y FECHA ---
 // Llama a updateClock() una vez al inicio para mostrar el reloj y la fecha inmediatamente
-updateClock(); 
+updateClock();
 // Luego, actualiza el reloj y la fecha cada segundo
-setInterval(updateClock, 1000); 
+setInterval(updateClock, 1000);
 // --- FIN CÓDIGO RELOJ Y FECHA ---
 
 // Cargar datos de asistencia al iniciar la página (después de iniciar el reloj)
