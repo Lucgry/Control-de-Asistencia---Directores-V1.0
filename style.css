@@ -119,17 +119,17 @@ th, td {
 
 #attendance-table th:nth-child(2),
 #attendance-table td:nth-child(2) {
-    width: 25%; /* Fecha */
+    width: 15%; /* Estado */
 }
 
 #attendance-table th:nth-child(3),
 #attendance-table td:nth-child(3) {
-    width: 20%; /* Hora */
+    width: 25%; /* Fecha */
 }
 
 #attendance-table th:nth-child(4),
 #attendance-table td:nth-child(4) {
-    width: 20%; /* Estado */
+    width: 25%; /* Hora */
 }
 
 th {
