@@ -105,7 +105,6 @@ async function fetchAttendanceData() {
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
     
     // Crear un objeto Date para la fecha seleccionada y normalizarlo a la medianoche UTC
-    // Esto es crucial para la comparación de fechas.
     const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); // Forzar a UTC medianoche
     console.log(`Fecha seleccionada (normalizada a UTC medianoche): ${selectedDate.toISOString()}`); // Debug
 
@@ -123,98 +122,64 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const data = result.data;
             
-            if (data.length <= 1) { // Si solo hay encabezados o no hay datos
-                totalRegistradosSpan.textContent = "0";
-                totalPresentesSpan.textContent = "0"; 
-                totalTardeSpan.textContent = "0";
-                totalAusentesSpan.textContent = allChoirMembers.length; 
-                lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
-                
-                // Mostrar todos los miembros como Ausentes
-                allChoirMembers.sort((a, b) => {
-                    if (sectionOrder[a.section] !== sectionOrder[b.section]) {
-                        return sectionOrder[a.section] - sectionOrder[b.section];
-                    }
-                    return a.name.localeCompare(b.name);
-                }).forEach(member => {
-                    const row = attendanceTableBody.insertRow();
-                    row.insertCell(0).textContent = member.name;
-                    const statusCell = row.insertCell(1);
-                    row.insertCell(2).textContent = '-';
-                    row.insertCell(3).textContent = '-';
-                    statusCell.textContent = 'A';
-                    statusCell.classList.add('status-cell', 'Ausente');
-                });
-                loadingMessage.style.display = 'none';
-                refreshButton.disabled = false;
-                return;
-            }
-
-            const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
-
             let registeredCountForSelectedDay = 0;
             let lateCountForSelectedDay = 0;
             let presentCountForSelectedDay = 0;
 
             const registeredMembersOnSelectedDay = new Set(); 
-            
             const recordsForSelectedDay = []; 
 
-            attendanceEntries.forEach(entry => {
-                const memberName = entry[0]; // Columna A (Nombre)
-                const status = entry[1];     // Columna B (Estado)
-                const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
-                const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
+            if (data.length > 1) { // Si hay datos más allá de los encabezados
+                const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
 
-                // Crear un objeto Date para la entrada de la hoja y normalizarlo a la medianoche UTC
-                const entryDate = new Date(dateIsoStr); 
-                entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
-                console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada UTC medianoche): ${entryDate.toISOString()}`); // Debug
-                
-                // Para mostrar la fecha y hora, usamos los objetos Date originales
-                const displayEntryDate = new Date(dateIsoStr).toLocaleDateString('es-AR');
-                const entryTime = new Date(timeIsoStr);
-                const displayEntryTime = entryTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                attendanceEntries.forEach(entry => {
+                    const memberName = entry[0]; // Columna A (Nombre)
+                    const status = entry[1];     // Columna B (Estado)
+                    const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
+                    const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
-                // ***** LÓGICA CLAVE: COMPARACIÓN DE FECHAS *****
-                // Comparamos los getTime() de las fechas normalizadas a UTC medianoche
-                if (entryDate.getTime() === selectedDate.getTime()) {
-                    console.log(`  -> ¡Coincidencia de fecha! ${memberName} registrado para el día seleccionado.`); // Debug
-                    registeredMembersOnSelectedDay.add(memberName); 
-                    registeredCountForSelectedDay++; 
+                    const entryDate = new Date(dateIsoStr); 
+                    entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
+                    console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada UTC medianoche): ${entryDate.toISOString()}`); // Debug
+                    
+                    if (entryDate.getTime() === selectedDate.getTime()) {
+                        console.log(`  -> ¡Coincidencia de fecha! ${memberName} registrado para el día seleccionado.`); // Debug
+                        registeredMembersOnSelectedDay.add(memberName); 
+                        registeredCountForSelectedDay++; 
 
-                    let statusChar = '';
-                    let statusClass = '';
+                        let statusChar = '';
+                        let statusClass = '';
 
-                    if (status === "Presente") {
-                        statusChar = 'P';
-                        statusClass = 'Presente';
-                        presentCountForSelectedDay++;
-                    } else if (status === "Tarde") {
-                        statusChar = 'T';
-                        statusClass = 'Tarde';
-                        lateCountForSelectedDay++;
+                        if (status === "Presente") {
+                            statusChar = 'P';
+                            statusClass = 'Presente';
+                            presentCountForSelectedDay++;
+                        } else if (status === "Tarde") {
+                            statusChar = 'T';
+                            statusClass = 'Tarde';
+                            lateCountForSelectedDay++;
+                        } else {
+                            statusChar = '-'; 
+                            statusClass = '';
+                        }
+                        
+                        const memberInfo = allChoirMembers.find(m => m.name === memberName);
+                        console.log(`  -> Nombre de hoja: "${memberName}", Coincidencia en allChoirMembers:`, memberInfo ? memberInfo.name : 'NO ENCONTRADO'); // Debug
+                        const section = memberInfo ? memberInfo.section : "Desconocida"; 
+                        
+                        recordsForSelectedDay.push({
+                            name: memberName,
+                            statusChar: statusChar,
+                            statusClass: statusClass,
+                            date: new Date(dateIsoStr).toLocaleDateString('es-AR'), // Fecha original para mostrar
+                            time: new Date(timeIsoStr).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), // Hora original para mostrar
+                            section: section 
+                        });
                     } else {
-                        statusChar = '-'; // Por si hay otro estado inesperado
-                        statusClass = '';
+                        console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada): ${selectedDate.toISOString()}`); // Debug
                     }
-                    
-                    const memberInfo = allChoirMembers.find(m => m.name === memberName);
-                    console.log(`  -> Nombre de hoja: "${memberName}", Coincidencia en allChoirMembers:`, memberInfo ? memberInfo.name : 'NO ENCONTRADO'); // Debug
-                    const section = memberInfo ? memberInfo.section : "Desconocida"; 
-                    
-                    recordsForSelectedDay.push({
-                        name: memberName,
-                        statusChar: statusChar,
-                        statusClass: statusClass,
-                        date: displayEntryDate,
-                        time: displayEntryTime,
-                        section: section 
-                    });
-                } else {
-                    console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada): ${selectedDate.toISOString()}`); // Debug
-                }
-            });
+                });
+            }
 
             // Determinar los miembros ausentes para el día SELECCIONADO
             const absentMembersOnSelectedDay = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
@@ -229,20 +194,30 @@ async function fetchAttendanceData() {
                 });
             });
 
-            // Ordenar los registros para la tabla
+            // --- LÓGICA DE ORDENAMIENTO DE LA TABLA ---
+            // Ordenar: 1. Por cuerda, 2. Alfabéticamente por nombre
             recordsForSelectedDay.sort((a, b) => {
-                const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
-                if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
-                    return statusOrder[a.statusChar] - statusOrder[b.statusChar];
-                }
+                // Primero, ordenar por el orden definido de las cuerdas
                 if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                     return sectionOrder[a.section] - sectionOrder[b.section];
                 }
+                // Si están en la misma cuerda, ordenar alfabéticamente por nombre
                 return a.name.localeCompare(b.name); 
             });
 
-            // Llenar la tabla
+            // --- Llenar la tabla con encabezados de cuerda ---
+            let currentSection = '';
             recordsForSelectedDay.forEach(rowData => {
+                // Si la cuerda cambia, inserta una fila de encabezado de cuerda
+                if (rowData.section !== currentSection) {
+                    currentSection = rowData.section;
+                    const headerRow = attendanceTableBody.insertRow();
+                    headerRow.classList.add('section-header'); // Para darle estilo CSS
+                    const headerCell = headerRow.insertCell(0);
+                    headerCell.colSpan = 4; // Para que ocupe todas las columnas
+                    headerCell.textContent = currentSection;
+                }
+
                 const row = attendanceTableBody.insertRow();
                 row.insertCell(0).textContent = rowData.name; 
                 const statusCell = row.insertCell(1); 
