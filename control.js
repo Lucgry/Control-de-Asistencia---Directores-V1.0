@@ -1,5 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdkVtcBTsyP5sbfDfUcVqPG/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
@@ -77,7 +77,7 @@ function formatDateForInput(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
 }
 
 // Función para actualizar la hora actual
@@ -104,12 +104,14 @@ async function fetchAttendanceData() {
 
     // Obtener la fecha seleccionada del input
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
-    const selectedDate = new Date(selectedDateStr);
-    selectedDate.setHours(0, 0, 0, 0); // Normalizar a medianoche para comparación
-    console.log(`Fecha seleccionada (local medianoche): ${selectedDate.toISOString()}`); // Debug
+    
+    // Crear un objeto Date para la fecha seleccionada y normalizarlo a la medianoche UTC
+    // Esto es crucial para la comparación de fechas.
+    const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); // Forzar a UTC medianoche
+    console.log(`Fecha seleccionada (normalizada a UTC medianoche): ${selectedDate.toISOString()}`); // Debug
 
-    // Formatear la fecha seleccionada para mostrar en el H2
-    const displayDate = selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // Formatear la fecha seleccionada para mostrar en el H2 (se sigue usando la hora local para mostrar)
+    const displayDate = new Date(selectedDateStr).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDate}`;
 
 
@@ -165,16 +167,20 @@ async function fetchAttendanceData() {
                 const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
                 const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
-                const entryDate = new Date(dateIsoStr);
-                entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche
-                console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Local medianoche): ${entryDate.toISOString()}`); // Debug
+                // Crear un objeto Date para la entrada de la hoja y normalizarlo a la medianoche UTC
+                const entryDate = new Date(dateIsoStr); 
+                entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
+                console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada UTC medianoche): ${entryDate.toISOString()}`); // Debug
                 
-                const displayEntryDate = entryDate.toLocaleDateString('es-AR');
+                // Para mostrar la fecha y hora, podemos usar los objetos Date originales
+                // o crear nuevos objetos para no afectar la comparación.
+                const displayEntryDate = new Date(dateIsoStr).toLocaleDateString('es-AR');
                 const entryTime = new Date(timeIsoStr);
                 const displayEntryTime = entryTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 
                 // ***** LÓGICA CLAVE: COMPARACIÓN DE FECHAS *****
+                // Comparamos los getTime() de las fechas normalizadas a UTC medianoche
                 if (entryDate.getTime() === selectedDate.getTime()) {
                     console.log(`  -> ¡Coincidencia de fecha! ${memberName} registrado para el día seleccionado.`); // Debug
                     registeredMembersOnSelectedDay.add(memberName); 
@@ -209,7 +215,7 @@ async function fetchAttendanceData() {
                         section: section 
                     });
                 } else {
-                    console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja: ${entryDate.toISOString()}, Fecha Seleccionada: ${selectedDate.toISOString()}`); // Debug
+                    console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada): ${selectedDate.toISOString()}`); // Debug
                 }
             });
 
@@ -242,31 +248,4 @@ async function fetchAttendanceData() {
                 row.insertCell(0).textContent = rowData.name; 
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
-                statusCell.classList.add('status-cell', rowData.statusClass);
-                row.insertCell(2).textContent = rowData.date; 
-                row.insertCell(3).textContent = rowData.time; 
-            });
-
-            totalRegistradosSpan.textContent = registeredCountForSelectedDay;
-            totalPresentesSpan.textContent = presentCountForSelectedDay;
-            totalTardeSpan.textContent = lateCountForSelectedDay;
-            totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
-
-            lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
-
-        } else {
-            console.error('Error al obtener datos:', result.message);
-            alert('Error al cargar la asistencia: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Error de conexión o de red:', error);
-        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
-    } finally {
-        loadingMessage.style.display = 'none'; 
-        refreshButton.disabled = false; 
-    }
-}
-
-refreshButton.addEventListener('click', fetchAttendanceData);
-initializeDateSelector();
-fetchAttendanceData();
+                statusCell.classList.add
