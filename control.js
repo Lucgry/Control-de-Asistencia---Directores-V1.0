@@ -1,5 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVPG/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
@@ -11,7 +11,7 @@ const refreshButton = document.getElementById('refresh-button');
 const loadingMessage = document.getElementById('loading-message');
 const currentDateDisplay = document.getElementById('current-date');
 const currentTimeDisplay = document.getElementById('current-time'); 
-const dateSelector = document.getElementById('date-selector'); // NUEVO: Selector de fecha
+const dateSelector = document.getElementById('date-selector'); 
 
 // Miembros del coro (debe ser el mismo listado que en tu app de registro)
 const allChoirMembers = [
@@ -62,6 +62,7 @@ async function fetchAttendanceData() {
 
 
     try {
+        // *** CAMBIO CLAVE: Llama al script SIN parámetros, asumiendo que devuelve todos los datos. ***
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -104,6 +105,7 @@ async function fetchAttendanceData() {
             
             const recordsForSelectedDay = []; // Array para almacenar los registros del día seleccionado
 
+            // FILTRADO POR FECHA EN EL LADO DEL CLIENTE
             attendanceEntries.forEach(entry => {
                 const memberName = entry[0];
                 const time = entry[1]; // Columna de Hora de Registro
@@ -115,7 +117,7 @@ async function fetchAttendanceData() {
                 const entryDate = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexados
                 entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche para comparación
 
-                // ***** LÓGICA CLAVE: FILTRAR POR FECHA SELECCIONADA *****
+                // ***** LÓGICA CLAVE: FILTRAR POR FECHA SELECCIONADA EN EL CLIENTE *****
                 if (entryDate.getTime() === selectedDate.getTime()) {
                     registeredMembersOnSelectedDay.add(memberName); 
                     registeredCountForSelectedDay++; 
