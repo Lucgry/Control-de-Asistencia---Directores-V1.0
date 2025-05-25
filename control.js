@@ -63,7 +63,7 @@ async function fetchAttendanceData() {
 
 
     try {
-        // Llama al script SIN parámetros, asumiendo que el Apps Script devolverá todos los datos.
+        // Llama al script SIN parámetros, asumiendo que devuelve todos los datos.
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -108,10 +108,10 @@ async function fetchAttendanceData() {
 
             // FILTRADO POR FECHA EN EL LADO DEL CLIENTE
             attendanceEntries.forEach(entry => {
-                const memberName = entry[0];
-                const time = entry[1]; // Columna de Hora de Registro
-                const status = entry[2]; // Columna de Estado (Presente/Tarde)
-                const dateStr = entry[3]; // Columna de Fecha (formato DD/MM/YYYY)
+                const memberName = entry[0]; // Columna A
+                const status = entry[1];     // Columna B (Estado)
+                const dateStr = entry[2];    // Columna C (Fecha)
+                const time = entry[3];       // Columna D (Hora de Registro)
 
                 // Convertir la fecha de la hoja (DD/MM/YYYY) a un objeto Date para comparación
                 const [day, month, year] = dateStr.split('/').map(Number);
