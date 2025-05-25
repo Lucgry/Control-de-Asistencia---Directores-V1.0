@@ -1,5 +1,4 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-// Esta es la URL que me has confirmado: https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec
 const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
@@ -24,7 +23,7 @@ const allChoirMembersBySection = {
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Ponce Romina Andrea", // Corregí el nombre para que coincida con la planilla
+        "Ponce Romina Andrea", // Corregido para que coincida con el JSON de tu Apps Script
         "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
@@ -114,7 +113,6 @@ async function fetchAttendanceData() {
 
 
     try {
-        // Llama al script SIN parámetros, asumiendo que devuelve todos los datos.
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -129,12 +127,11 @@ async function fetchAttendanceData() {
                 totalRegistradosSpan.textContent = "0";
                 totalPresentesSpan.textContent = "0"; 
                 totalTardeSpan.textContent = "0";
-                totalAusentesSpan.textContent = allChoirMembers.length; // Usar el total de la lista plana
+                totalAusentesSpan.textContent = allChoirMembers.length; 
                 lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
                 
                 // Mostrar todos los miembros como ausentes y ordenados por cuerda
                 allChoirMembers.sort((a, b) => {
-                    // Ordenar por cuerda primero, luego alfabéticamente
                     if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                         return sectionOrder[a.section] - sectionOrder[b.section];
                     }
@@ -159,21 +156,27 @@ async function fetchAttendanceData() {
             let lateCountForSelectedDay = 0;
             let presentCountForSelectedDay = 0;
 
-            const registeredMembersOnSelectedDay = new Set(); // Para llevar un registro de los que asistieron en el día seleccionado
+            const registeredMembersOnSelectedDay = new Set(); 
             
-            const recordsForSelectedDay = []; // Array para almacenar los registros del día seleccionado
+            const recordsForSelectedDay = []; 
 
-            // FILTRADO POR FECHA Y COLECTAR REGISTROS
             attendanceEntries.forEach(entry => {
                 const memberName = entry[0]; // Columna A (Nombre)
                 const status = entry[1];     // Columna B (Estado)
-                const dateStr = entry[2];    // Columna C (Fecha)
-                const time = entry[3];       // Columna D (Hora de Registro)
+                const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
+                const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
-                // Convertir la fecha de la hoja (DD/MM/YYYY) a un objeto Date para comparación
-                const [day, month, year] = dateStr.split('/').map(Number);
-                const entryDate = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexados
+                // Convertir la fecha ISO de la hoja a un objeto Date para comparación
+                const entryDate = new Date(dateIsoStr);
                 entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche
+
+                // Formatear la fecha para mostrar (DD/MM/YYYY)
+                const displayEntryDate = entryDate.toLocaleDateString('es-AR');
+
+                // Formatear la hora para mostrar (HH:MM:SS)
+                const entryTime = new Date(timeIsoStr);
+                const displayEntryTime = entryTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
 
                 if (entryDate.getTime() === selectedDate.getTime()) {
                     registeredMembersOnSelectedDay.add(memberName); 
@@ -185,30 +188,31 @@ async function fetchAttendanceData() {
                     if (status === "Presente") {
                         statusChar = 'P';
                         statusClass = 'Presente';
+                        presentCountForSelectedDay++;
                     } else if (status === "Tarde") {
                         statusChar = 'T';
                         statusClass = 'Tarde';
+                        lateCountForSelectedDay++;
                     } else {
-                        statusChar = '-'; // En caso de estado inesperado
+                        statusChar = '-'; 
                         statusClass = '';
                     }
                     
-                    // Buscar la sección del miembro para incluirla en el objeto de registro
                     const memberInfo = allChoirMembers.find(m => m.name === memberName);
-                    const section = memberInfo ? memberInfo.section : "Desconocida"; // Asigna "Desconocida" si no se encuentra
+                    const section = memberInfo ? memberInfo.section : "Desconocida"; 
                     
                     recordsForSelectedDay.push({
                         name: memberName,
                         statusChar: statusChar,
                         statusClass: statusClass,
-                        date: dateStr,
-                        time: time,
-                        section: section // Añade la sección aquí
+                        date: displayEntryDate, // Usar la fecha formateada
+                        time: displayEntryTime, // Usar la hora formateada
+                        section: section 
                     });
                 }
             });
 
-            // Determinar los miembros ausentes para el día SELECCIONADO y añadir su sección
+            // Determinar los miembros ausentes para el día SELECCIONADO
             const absentMembersOnSelectedDay = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
             absentMembersOnSelectedDay.forEach(memberObj => {
                 recordsForSelectedDay.push({
@@ -217,25 +221,19 @@ async function fetchAttendanceData() {
                     statusClass: 'Ausente',
                     date: displayDate,
                     time: '-',
-                    section: memberObj.section // Añade la sección aquí para ausentes
+                    section: memberObj.section 
                 });
             });
 
-            // Ordenar los registros del día seleccionado: 
-            // 1. Por estado (Presente, Tarde, Ausente)
-            // 2. Por cuerda (Soprano, Contralto, Tenor, Bajo)
-            // 3. Alfabéticamente por nombre
+            // Ordenar los registros del día seleccionado
             recordsForSelectedDay.sort((a, b) => {
                 const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
-                // Primero por estado
                 if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
                     return statusOrder[a.statusChar] - statusOrder[b.statusChar];
                 }
-                // Luego por cuerda
                 if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                     return sectionOrder[a.section] - sectionOrder[b.section];
                 }
-                // Finalmente alfabéticamente por nombre
                 return a.name.localeCompare(b.name); 
             });
 
@@ -268,8 +266,8 @@ async function fetchAttendanceData() {
         console.error('Error de conexión o de red:', error);
         alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
     } finally {
-        loadingMessage.style.display = 'none'; // Ocultar mensaje de carga
-        refreshButton.disabled = false; // Habilitar botón
+        loadingMessage.style.display = 'none'; 
+        refreshButton.disabled = false; 
     }
 }
 
@@ -278,7 +276,7 @@ refreshButton.addEventListener('click', fetchAttendanceData);
 
 // Inicializar el selector de fecha y cargar los datos al iniciar la página
 initializeDateSelector();
-fetchAttendanceData(); // Cargar datos para el día actual al iniciar
+fetchAttendanceData(); 
 
 // Opcional: Actualizar automáticamente la tabla cada cierto tiempo (ej. cada 30 segundos)
 // setInterval(fetchAttendanceData, 30000);
