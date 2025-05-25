@@ -1,18 +1,19 @@
 // ** ¡TU NUEVA URL DE GOOGLE APPS SCRIPT PARA LECTURA AQUÍ! **
-// ESTA ES LA URL QUE ME PASASTE: https://script.google.com/macros/s/AKfycbwRMbh5YeYeFlKUYjK37S8I5rZkTGFGwpbtCkXkGXK-vvGUyJcRrj4zYx_Yct8dcwMkQQ/exec
 const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwRMbh5YeYeFlKUYjK37S8I5rZkTGFGwpbtCkXkGXK-vvGUyJcRrj4zYx_Yct8dcwMkQQ/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
+const totalPresentesSpan = document.getElementById('total-presentes'); 
 const totalTardeSpan = document.getElementById('total-tarde');
 const totalAusentesSpan = document.getElementById('total-ausentes');
 const lastUpdatedSpan = document.getElementById('last-updated');
 const refreshButton = document.getElementById('refresh-button');
 const loadingMessage = document.getElementById('loading-message');
 const currentDateDisplay = document.getElementById('current-date');
+const currentTimeDisplay = document.getElementById('current-time'); 
+const dateSelector = document.getElementById('date-selector'); // NUEVO: Selector de fecha
 
 // Miembros del coro (debe ser el mismo listado que en tu app de registro)
-// Es mejor consolidar esta lista si se usa en varios lugares
 const allChoirMembers = [
     "Aparicio Rocío", "Aramayo Valentina", "Evangelista Maira", "Ferreyra Agustina", "Gamboa Martina", 
     "Giménez Martina", "López Catalina", "Mena Priscila", "Nuñez Martina", "Rodríguez Candelaria", 
@@ -20,11 +21,45 @@ const allChoirMembers = [
     "Gordillo Facundo", "Martínez Ramiro", "Nuñez Benjamín", "Paniagua Benjamín", "Salva Benjamín"
 ];
 
+// Función para formatear la fecha a YYYY-MM-DD para el input type="date"
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Función para actualizar la hora actual
+function updateCurrentTime() {
+    const now = new Date();
+    currentTimeDisplay.textContent = now.toLocaleTimeString('es-AR');
+}
+// Actualiza la hora cada segundo
+setInterval(updateCurrentTime, 1000);
+
+// Inicializa el selector de fecha y carga los datos del día actual al inicio
+function initializeDateSelector() {
+    const today = new Date();
+    dateSelector.value = formatDateForInput(today);
+    // Agrega el event listener para que cuando cambie la fecha, se actualice la tabla
+    dateSelector.addEventListener('change', fetchAttendanceData);
+}
+
 
 async function fetchAttendanceData() {
     refreshButton.disabled = true; // Deshabilitar botón mientras carga
     loadingMessage.style.display = 'block'; // Mostrar mensaje de carga
     attendanceTableBody.innerHTML = ''; // Limpiar tabla
+
+    // Obtener la fecha seleccionada del input
+    const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
+    const selectedDate = new Date(selectedDateStr);
+    selectedDate.setHours(0, 0, 0, 0); // Normalizar a medianoche para comparación
+
+    // Formatear la fecha seleccionada para mostrar en el H2
+    const displayDate = selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    currentDateDisplay.textContent = `Asistencia para: ${displayDate}`;
+
 
     try {
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
@@ -35,73 +70,125 @@ async function fetchAttendanceData() {
 
         if (result.status === "success") {
             const data = result.data;
-            const headers = data[0]; // La primera fila son los encabezados
-            const attendanceEntries = data.slice(1); // El resto son las entradas
+            
+            // Si no hay datos o solo encabezados en la hoja, inicializar contadores y mostrar ausentes
+            if (data.length <= 1) { 
+                totalRegistradosSpan.textContent = "0";
+                totalPresentesSpan.textContent = "0"; 
+                totalTardeSpan.textContent = "0";
+                totalAusentesSpan.textContent = allChoirMembers.length;
+                lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+                
+                // Mostrar todos los miembros como ausentes para el día seleccionado si no hay registros
+                allChoirMembers.forEach(member => {
+                    const row = attendanceTableBody.insertRow();
+                    row.insertCell(0).textContent = member; // Nombre
+                    const statusCell = row.insertCell(1); // Estado
+                    row.insertCell(2).textContent = '-'; // Fecha
+                    row.insertCell(3).textContent = '-'; // Hora
+                    statusCell.textContent = 'A'; // Ausente
+                    statusCell.classList.add('status-cell', 'Ausente');
+                });
+                loadingMessage.style.display = 'none';
+                refreshButton.disabled = false;
+                return; // Salir de la función
+            }
 
-            let registeredCount = 0;
-            let lateCount = 0; // Se asume que tu script ya distingue tarde
+            const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
 
-            const registeredMembersToday = new Set();
+            let registeredCountForSelectedDay = 0; // Total registrados para el día seleccionado
+            let lateCountForSelectedDay = 0;    // Tardes para el día seleccionado
+            let presentCountForSelectedDay = 0; // Presentes a tiempo para el día seleccionado
+
+            const registeredMembersOnSelectedDay = new Set(); // Para llevar un registro de los que asistieron en el día seleccionado
+            
+            const recordsForSelectedDay = []; // Array para almacenar los registros del día seleccionado
 
             attendanceEntries.forEach(entry => {
                 const memberName = entry[0];
-                const time = entry[1]; // Suponiendo que esta es la columna de Hora de Registro
-                const status = entry[2]; // Suponiendo que esta es la columna de Estado (Presente/Tarde)
-                
-                // Procesar solo registros del día actual
-                const entryDate = new Date(entry[3]); // Suponiendo que la fecha está en la columna 3 (Fecha)
-                const today = new Date(); // Fecha actual
+                const time = entry[1]; // Columna de Hora de Registro
+                const status = entry[2]; // Columna de Estado (Presente/Tarde)
+                const dateStr = entry[3]; // Columna de Fecha (formato DD/MM/YYYY)
 
-                // Compara solo el día, mes y año
-                if (entryDate.getDate() === today.getDate() &&
-                    entryDate.getMonth() === today.getMonth() &&
-                    entryDate.getFullYear() === today.getFullYear()) {
+                // Convertir la fecha de la hoja (DD/MM/YYYY) a un objeto Date para comparación
+                const [day, month, year] = dateStr.split('/').map(Number);
+                const entryDate = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexados
+                entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche para comparación
 
-                    registeredMembersToday.add(memberName);
-                    registeredCount++;
+                // ***** LÓGICA CLAVE: FILTRAR POR FECHA SELECCIONADA *****
+                if (entryDate.getTime() === selectedDate.getTime()) {
+                    registeredMembersOnSelectedDay.add(memberName); 
+                    registeredCountForSelectedDay++; 
 
-                    const row = attendanceTableBody.insertRow();
-                    row.insertCell(0).textContent = memberName;
-                    row.insertCell(1).textContent = time; // Hora de Registro
-                    const statusCell = row.insertCell(2);
+                    let statusChar = '';
+                    let statusClass = '';
 
-                    // ***** INICIO DE LA MODIFICACIÓN *****
+                    // Modificaciones de texto a P, T, A
                     if (status === "Presente") {
-                        statusCell.textContent = 'P'; // Cambiado de 'Presente' a 'P'
-                        statusCell.classList.add('status-cell', 'Presente');
+                        statusChar = 'P';
+                        statusClass = 'Presente';
+                        presentCountForSelectedDay++; // Contar para el resumen de presentes a tiempo
                     } else if (status === "Tarde") {
-                        statusCell.textContent = 'T';    // Cambiado de 'Tarde' a 'T'
-                        statusCell.classList.add('status-cell', 'Tarde');
-                        lateCount++; // Asumimos que tu script de google ya cuenta tarde
+                        statusChar = 'T';
+                        statusClass = 'Tarde';
+                        lateCountForSelectedDay++; // Contar para el resumen de tardes
                     } else {
-                        // En caso de un estado inesperado, usar P por defecto y el color original
-                        statusCell.textContent = 'P'; 
-                        statusCell.classList.add('status-cell', 'Presente');
+                        statusChar = '-'; // En caso de estado inesperado
+                        statusClass = '';
                     }
-                    // ***** FIN DE LA MODIFICACIÓN *****
+                    
+                    recordsForSelectedDay.push({
+                        name: memberName,
+                        statusChar: statusChar,
+                        statusClass: statusClass,
+                        date: dateStr, // Usar el string original para mostrar
+                        time: time
+                    });
                 }
             });
 
-            // Lógica para determinar los ausentes (Miembros en la lista total que no se registraron hoy)
-            const absentMembers = allChoirMembers.filter(member => !registeredMembersToday.has(member));
-            
-            absentMembers.forEach(member => {
-                const row = attendanceTableBody.insertRow();
-                row.insertCell(0).textContent = member;
-                row.insertCell(1).textContent = '-'; // No hay hora de registro para ausentes
-                const statusCell = row.insertCell(2);
-                // ***** INICIO DE LA MODIFICACIÓN *****
-                statusCell.textContent = 'A'; // Cambiado de 'Ausente' a 'A'
-                // ***** FIN DE LA MODIFICACIÓN *****
-                statusCell.classList.add('status-cell', 'Ausente');
+            // Determinar los miembros ausentes para el día SELECCIONADO
+            const absentMembersOnSelectedDay = allChoirMembers.filter(member => !registeredMembersOnSelectedDay.has(member));
+            absentMembersOnSelectedDay.forEach(member => {
+                recordsForSelectedDay.push({
+                    name: member,
+                    statusChar: 'A',
+                    statusClass: 'Ausente',
+                    date: displayDate, // Usar la fecha formateada del selector para los ausentes
+                    time: '-'
+                });
             });
 
-            totalRegistradosSpan.textContent = registeredCount;
-            totalTardeSpan.textContent = lateCount;
-            totalAusentesSpan.textContent = absentMembers.length;
+            // Ordenar los registros del día seleccionado: P, T, A, luego alfabéticamente
+            recordsForSelectedDay.sort((a, b) => {
+                const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
+                if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
+                    return statusOrder[a.statusChar] - statusOrder[b.statusChar];
+                }
+                return a.name.localeCompare(b.name); 
+            });
+
+            // Llenar la tabla con los registros ordenados del día seleccionado
+            recordsForSelectedDay.forEach(rowData => {
+                const row = attendanceTableBody.insertRow();
+                row.insertCell(0).textContent = rowData.name; 
+                
+                const statusCell = row.insertCell(1); 
+                statusCell.textContent = rowData.statusChar;
+                statusCell.classList.add('status-cell', rowData.statusClass);
+
+                row.insertCell(2).textContent = rowData.date; 
+                row.insertCell(3).textContent = rowData.time; 
+            });
+
+            // Actualizar los resúmenes para el DÍA SELECCIONADO
+            totalRegistradosSpan.textContent = registeredCountForSelectedDay;
+            totalPresentesSpan.textContent = presentCountForSelectedDay;
+            totalTardeSpan.textContent = lateCountForSelectedDay;
+            totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
 
             lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
-            currentDateDisplay.textContent = `Asistencia para hoy: ${new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+            // currentDateDisplay ya se actualiza al inicio de la función con la fecha seleccionada
 
         } else {
             console.error('Error al obtener datos:', result.message);
@@ -119,7 +206,9 @@ async function fetchAttendanceData() {
 // Event listener para el botón de actualizar
 refreshButton.addEventListener('click', fetchAttendanceData);
 
-// Cargar datos al iniciar la página
-fetchAttendanceData();
-// Opcional: Actualizar automáticamente cada cierto tiempo (ej. cada 30 segundos)
-// setInterval(fetchAttendanceData, 30000); // 30000 ms = 30 segundos
+// Inicializar el selector de fecha y cargar los datos al iniciar la página
+initializeDateSelector();
+fetchAttendanceData(); // Cargar datos para el día actual al iniciar
+
+// Opcional: Actualizar automáticamente la tabla cada cierto tiempo (ej. cada 30 segundos)
+// setInterval(fetchAttendanceData, 30000);
