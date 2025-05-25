@@ -23,7 +23,7 @@ const allChoirMembersBySection = {
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Ponce Romina Andrea", // Corregido para que coincida con el JSON de tu Apps Script
+        "Romina Andrea", // <-- ¡CORREGIDO AQUI! PARA QUE COINCIDA CON TU JSON
         "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
@@ -106,6 +106,7 @@ async function fetchAttendanceData() {
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
     const selectedDate = new Date(selectedDateStr);
     selectedDate.setHours(0, 0, 0, 0); // Normalizar a medianoche para comparación
+    console.log(`Fecha seleccionada (local medianoche): ${selectedDate.toISOString()}`); // Debug
 
     // Formatear la fecha seleccionada para mostrar en el H2
     const displayDate = selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -122,7 +123,6 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const data = result.data;
             
-            // Si no hay datos o solo encabezados en la hoja, inicializar contadores y mostrar ausentes
             if (data.length <= 1) { 
                 totalRegistradosSpan.textContent = "0";
                 totalPresentesSpan.textContent = "0"; 
@@ -130,7 +130,6 @@ async function fetchAttendanceData() {
                 totalAusentesSpan.textContent = allChoirMembers.length; 
                 lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
                 
-                // Mostrar todos los miembros como ausentes y ordenados por cuerda
                 allChoirMembers.sort((a, b) => {
                     if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                         return sectionOrder[a.section] - sectionOrder[b.section];
@@ -138,16 +137,16 @@ async function fetchAttendanceData() {
                     return a.name.localeCompare(b.name);
                 }).forEach(member => {
                     const row = attendanceTableBody.insertRow();
-                    row.insertCell(0).textContent = member.name; // Nombre
-                    const statusCell = row.insertCell(1); // Estado
-                    row.insertCell(2).textContent = '-'; // Fecha
-                    row.insertCell(3).textContent = '-'; // Hora
-                    statusCell.textContent = 'A'; // Ausente
+                    row.insertCell(0).textContent = member.name;
+                    const statusCell = row.insertCell(1);
+                    row.insertCell(2).textContent = '-';
+                    row.insertCell(3).textContent = '-';
+                    statusCell.textContent = 'A';
                     statusCell.classList.add('status-cell', 'Ausente');
                 });
                 loadingMessage.style.display = 'none';
                 refreshButton.disabled = false;
-                return; // Salir de la función
+                return;
             }
 
             const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
@@ -166,19 +165,18 @@ async function fetchAttendanceData() {
                 const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
                 const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
-                // Convertir la fecha ISO de la hoja a un objeto Date para comparación
                 const entryDate = new Date(dateIsoStr);
                 entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche
-
-                // Formatear la fecha para mostrar (DD/MM/YYYY)
+                console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Local medianoche): ${entryDate.toISOString()}`); // Debug
+                
                 const displayEntryDate = entryDate.toLocaleDateString('es-AR');
-
-                // Formatear la hora para mostrar (HH:MM:SS)
                 const entryTime = new Date(timeIsoStr);
                 const displayEntryTime = entryTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 
+                // ***** LÓGICA CLAVE: COMPARACIÓN DE FECHAS *****
                 if (entryDate.getTime() === selectedDate.getTime()) {
+                    console.log(`  -> ¡Coincidencia de fecha! ${memberName} registrado para el día seleccionado.`); // Debug
                     registeredMembersOnSelectedDay.add(memberName); 
                     registeredCountForSelectedDay++; 
 
@@ -199,16 +197,19 @@ async function fetchAttendanceData() {
                     }
                     
                     const memberInfo = allChoirMembers.find(m => m.name === memberName);
+                    console.log(`  -> Nombre de hoja: "${memberName}", Coincidencia en allChoirMembers:`, memberInfo ? memberInfo.name : 'NO ENCONTRADO'); // Debug
                     const section = memberInfo ? memberInfo.section : "Desconocida"; 
                     
                     recordsForSelectedDay.push({
                         name: memberName,
                         statusChar: statusChar,
                         statusClass: statusClass,
-                        date: displayEntryDate, // Usar la fecha formateada
-                        time: displayEntryTime, // Usar la hora formateada
+                        date: displayEntryDate,
+                        time: displayEntryTime,
                         section: section 
                     });
+                } else {
+                    console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja: ${entryDate.toISOString()}, Fecha Seleccionada: ${selectedDate.toISOString()}`); // Debug
                 }
             });
 
@@ -225,7 +226,6 @@ async function fetchAttendanceData() {
                 });
             });
 
-            // Ordenar los registros del día seleccionado
             recordsForSelectedDay.sort((a, b) => {
                 const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
                 if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
@@ -237,20 +237,16 @@ async function fetchAttendanceData() {
                 return a.name.localeCompare(b.name); 
             });
 
-            // Llenar la tabla con los registros ordenados del día seleccionado
             recordsForSelectedDay.forEach(rowData => {
                 const row = attendanceTableBody.insertRow();
                 row.insertCell(0).textContent = rowData.name; 
-                
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
                 statusCell.classList.add('status-cell', rowData.statusClass);
-
                 row.insertCell(2).textContent = rowData.date; 
                 row.insertCell(3).textContent = rowData.time; 
             });
 
-            // Actualizar los resúmenes para el DÍA SELECCIONADO
             totalRegistradosSpan.textContent = registeredCountForSelectedDay;
             totalPresentesSpan.textContent = presentCountForSelectedDay;
             totalTardeSpan.textContent = lateCountForSelectedDay;
@@ -271,12 +267,6 @@ async function fetchAttendanceData() {
     }
 }
 
-// Event listener para el botón de actualizar
 refreshButton.addEventListener('click', fetchAttendanceData);
-
-// Inicializar el selector de fecha y cargar los datos al iniciar la página
 initializeDateSelector();
-fetchAttendanceData(); 
-
-// Opcional: Actualizar automáticamente la tabla cada cierto tiempo (ej. cada 30 segundos)
-// setInterval(fetchAttendanceData, 30000);
+fetchAttendanceData();
