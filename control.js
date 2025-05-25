@@ -1,5 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVPG/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
