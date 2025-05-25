@@ -1,4 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
+// Esta es la URL que me has confirmado: https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec
 const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
@@ -63,6 +64,7 @@ async function fetchAttendanceData() {
 
     try {
         // *** CAMBIO CLAVE: Llama al script SIN parámetros, asumiendo que devuelve todos los datos. ***
+        // URL confirmada y sin parámetros de fecha.
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
