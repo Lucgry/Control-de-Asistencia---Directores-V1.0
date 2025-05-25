@@ -80,10 +80,25 @@ function formatDateForInput(date) {
     return `${year}-${month}-${day}`;
 }
 
+// NUEVA Función para formatear la fecha a DD/MM/AA
+function formatDisplayDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2); // Últimos dos dígitos del año
+    return `${day}/${month}/${year}`;
+}
+
+// NUEVA Función para formatear la hora a HH:MM
+function formatDisplayTime(date) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 // Función para actualizar la hora actual
 function updateCurrentTime() {
     const now = new Date();
-    currentTimeDisplay.textContent = now.toLocaleTimeString('es-AR');
+    currentTimeDisplay.textContent = formatDisplayTime(now); // Usa el nuevo formato para la hora actual
 }
 // Actualiza la hora cada segundo
 setInterval(updateCurrentTime, 1000);
@@ -108,9 +123,9 @@ async function fetchAttendanceData() {
     const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); // Forzar a UTC medianoche
     console.log(`Fecha seleccionada (normalizada a UTC medianoche): ${selectedDate.toISOString()}`); // Debug
 
-    // Formatear la fecha seleccionada para mostrar en el H2 (se sigue usando la hora local para mostrar)
-    const displayDate = new Date(selectedDateStr).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    currentDateDisplay.textContent = `Asistencia para: ${displayDate}`;
+    // Formatear la fecha seleccionada para mostrar en el H2
+    const displayDateFull = new Date(selectedDateStr).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
 
     try {
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
@@ -171,8 +186,8 @@ async function fetchAttendanceData() {
                             name: memberName,
                             statusChar: statusChar,
                             statusClass: statusClass,
-                            date: new Date(dateIsoStr).toLocaleDateString('es-AR'), // Fecha original para mostrar
-                            time: new Date(timeIsoStr).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), // Hora original para mostrar
+                            date: formatDisplayDate(new Date(dateIsoStr)), // Usa el nuevo formato de fecha
+                            time: formatDisplayTime(new Date(timeIsoStr)), // Usa el nuevo formato de hora
                             section: section 
                         });
                     } else {
@@ -188,7 +203,7 @@ async function fetchAttendanceData() {
                     name: memberObj.name,
                     statusChar: 'A',
                     statusClass: 'Ausente',
-                    date: displayDate, // Usamos la fecha seleccionada para los ausentes
+                    date: formatDisplayDate(new Date(selectedDateStr)), // Usa el nuevo formato de fecha para los ausentes
                     time: '-',
                     section: memberObj.section 
                 });
@@ -233,7 +248,7 @@ async function fetchAttendanceData() {
             totalTardeSpan.textContent = lateCountForSelectedDay;
             totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
 
-            lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+            lastUpdatedSpan.textContent = `Última actualización: ${formatDisplayTime(new Date())}`; // Usa el nuevo formato de hora
 
         } else {
             console.error('Error al obtener datos:', result.message);
