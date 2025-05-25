@@ -1,212 +1,107 @@
-// ** ¡LA ÚLTIMA URL DE GOOGLE APPS SCRIPT PARA LECTURA QUE ME DISTE! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwCI3qlLh6dCFGMIK2QfOY3yJeIjgXVHCWLbRxQ8Fot9B_3lgfJA6020j9ae5H01JpeZQ/exec';
+// ** ¡TU NUEVA URL DE GOOGLE APPS SCRIPT PARA LECTURA AQUÍ! **
+// ESTA ES LA URL QUE ME PASASTE: https://script.google.com/macros/s/AKfycbwRMbh5YeYeFlKUYjK37S8I5rZkTGFGwpbtCkXkGXK-vvGUyJcRrj4zYx_Yct8dcwMkQQ/exec
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwRMbh5YeYeFlKUYjK37S8I5rZkTGFGwpbtCkXkGXK-vvGUyJcRrj4zYx_Yct8dcwMkQQ/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
-const totalPresentesSpan = document.getElementById('total-presentes');
 const totalTardeSpan = document.getElementById('total-tarde');
-const totalAusentesSpan = document.getElementById('total-ausentes'); // Este es el span para Ausentes
+const totalAusentesSpan = document.getElementById('total-ausentes');
 const lastUpdatedSpan = document.getElementById('last-updated');
 const refreshButton = document.getElementById('refresh-button');
+const loadingMessage = document.getElementById('loading-message');
 const currentDateDisplay = document.getElementById('current-date');
-const currentTimeDisplay = document.getElementById('current-time');
-const loadingMessage = document.getElementById('loading-message'); // Asegurarse de que este elemento existe en tu HTML
 
-
-// Miembros del coro, organizados por cuerda y ordenados alfabéticamente
-// ¡IMPORTANTE! Asegúrate de que esta lista sea EXACTA con los nombres en tu planilla.
-const allChoirMembersBySection = {
-    "Sopranos": [
-        "Aparicio Rocío",
-        "Aramayo Valentina",
-        "Evangelista Maira",
-        "Ferri Mónica",
-        "Gallardo Cintia",
-        "Perez Gesualdo Anahi",
-        "Romina Andrea",
-        "Ruiz Paola",
-        "Solís Lucero",
-        "Suárez Daniela"
-    ].sort((a, b) => a.localeCompare(b)),
-    "Contraltos": [
-        "Aguilera Abril",
-        "Buchller Patricia",
-        "Caro Zaira",
-        "Cuello Sandra",
-        "Galvez Delfina",
-        "Salmoral Carolina"
-    ].sort((a, b) => a.localeCompare(b)),
-    "Tenores": [
-        "Groppa Octavio",
-        "Liendro Gabriel",
-        "Otero Oscar",
-        "Roldán Cristian",
-        "Silva G. José",
-        "Valdez Julio",
-        "Velárdez José"
-    ].sort((a, b) => a.localeCompare(b)),
-    "Bajos": [
-        "Colqui Marcelo",
-        "Goytia Abel",
-        "Ibarra Wally",
-        "Jardín Augusto",
-        "Rocha Ariel",
-        "Villafañe Valentín"
-    ].sort((a, b) => a.localeCompare(b))
-};
-
-const allChoirMembersFlat = Object.values(allChoirMembersBySection).flat();
-
-function updateClock() {
-    const ahora = new Date();
-    const zona = 'es-AR';
-    const opcionesHora = {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    };
-
-    const opcionesFecha = {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    };
-
-    currentTimeDisplay.textContent = ahora.toLocaleTimeString(zona, opcionesHora);
-    currentDateDisplay.textContent = `Asistencia para hoy: ${ahora.toLocaleDateString(zona, opcionesFecha)}`;
-}
+// Miembros del coro (debe ser el mismo listado que en tu app de registro)
+// Es mejor consolidar esta lista si se usa en varios lugares
+const allChoirMembers = [
+    "Aparicio Rocío", "Aramayo Valentina", "Evangelista Maira", "Ferreyra Agustina", "Gamboa Martina", 
+    "Giménez Martina", "López Catalina", "Mena Priscila", "Nuñez Martina", "Rodríguez Candelaria", 
+    "Aguirre Matías", "Álvarez Matías", "Castellanos Matías", "Cruz Ramiro", "Gonzales Benjamín", 
+    "Gordillo Facundo", "Martínez Ramiro", "Nuñez Benjamín", "Paniagua Benjamín", "Salva Benjamín"
+];
 
 
 async function fetchAttendanceData() {
-    attendanceTableBody.innerHTML = '';
-    loadingMessage.style.display = 'block';
-    refreshButton.disabled = true;
+    refreshButton.disabled = true; // Deshabilitar botón mientras carga
+    loadingMessage.style.display = 'block'; // Mostrar mensaje de carga
+    attendanceTableBody.innerHTML = ''; // Limpiar tabla
 
     try {
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
 
         if (result.status === "success") {
-            const todayAttendance = result.data;
+            const data = result.data;
+            const headers = data[0]; // La primera fila son los encabezados
+            const attendanceEntries = data.slice(1); // El resto son las entradas
 
-            let countRegistrados = 0;
-            let countPresente = 0;
-            let countTarde = 0;
-            let countAusente = 0; // Se inicializa el contador de Ausentes aquí.
+            let registeredCount = 0;
+            let lateCount = 0; // Se asume que tu script ya distingue tarde
 
-            // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
+            const registeredMembersToday = new Set();
 
-            const cutoffHour = 22; // Hora de corte: 22 (10 PM)
-            const cutoffMinute = 50; // Minuto de corte: 50
+            attendanceEntries.forEach(entry => {
+                const memberName = entry[0];
+                const time = entry[1]; // Suponiendo que esta es la columna de Hora de Registro
+                const status = entry[2]; // Suponiendo que esta es la columna de Estado (Presente/Tarde)
+                
+                // Procesar solo registros del día actual
+                const entryDate = new Date(entry[3]); // Suponiendo que la fecha está en la columna 3 (Fecha)
+                const today = new Date(); // Fecha actual
 
-            // Función auxiliar para verificar si la hora de corte ha pasado
-            const hasCutoffPassed = (currentH, currentM, cutoffH, cutoffM) => {
-                if (currentH > cutoffH) {
-                    return true;
+                // Compara solo el día, mes y año
+                if (entryDate.getDate() === today.getDate() &&
+                    entryDate.getMonth() === today.getMonth() &&
+                    entryDate.getFullYear() === today.getFullYear()) {
+
+                    registeredMembersToday.add(memberName);
+                    registeredCount++;
+
+                    const row = attendanceTableBody.insertRow();
+                    row.insertCell(0).textContent = memberName;
+                    row.insertCell(1).textContent = time; // Hora de Registro
+                    const statusCell = row.insertCell(2);
+
+                    // ***** INICIO DE LA MODIFICACIÓN *****
+                    if (status === "Presente") {
+                        statusCell.textContent = 'P'; // Cambiado de 'Presente' a 'P'
+                        statusCell.classList.add('status-cell', 'Presente');
+                    } else if (status === "Tarde") {
+                        statusCell.textContent = 'T';    // Cambiado de 'Tarde' a 'T'
+                        statusCell.classList.add('status-cell', 'Tarde');
+                        lateCount++; // Asumimos que tu script de google ya cuenta tarde
+                    } else {
+                        // En caso de un estado inesperado, usar P por defecto y el color original
+                        statusCell.textContent = 'P'; 
+                        statusCell.classList.add('status-cell', 'Presente');
+                    }
+                    // ***** FIN DE LA MODIFICACIÓN *****
                 }
-                if (currentH === cutoffH && currentM >= cutoffM) {
-                    return true;
-                }
-                return false;
-            };
-
-            const isPastDeadline = hasCutoffPassed(currentHour, currentMinute, cutoffHour, cutoffMinute);
-            // --- FIN DE LA MODIFICACIÓN DE VARIABLES Y FUNCIÓN AUXILIAR ---
-
-            const attendanceMap = new Map();
-            todayAttendance.forEach(entry => {
-                attendanceMap.set(entry.nombre, { hora: entry.hora, estado: entry.estado, fecha: entry.fecha });
             });
 
-            for (const sectionName in allChoirMembersBySection) {
-                const sectionHeaderRow = attendanceTableBody.insertRow();
-                sectionHeaderRow.classList.add('section-header');
-                const headerCell = sectionHeaderRow.insertCell(0);
-                headerCell.colSpan = 4;
-                headerCell.textContent = sectionName;
+            // Lógica para determinar los ausentes (Miembros en la lista total que no se registraron hoy)
+            const absentMembers = allChoirMembers.filter(member => !registeredMembersToday.has(member));
+            
+            absentMembers.forEach(member => {
+                const row = attendanceTableBody.insertRow();
+                row.insertCell(0).textContent = member;
+                row.insertCell(1).textContent = '-'; // No hay hora de registro para ausentes
+                const statusCell = row.insertCell(2);
+                // ***** INICIO DE LA MODIFICACIÓN *****
+                statusCell.textContent = 'A'; // Cambiado de 'Ausente' a 'A'
+                // ***** FIN DE LA MODIFICACIÓN *****
+                statusCell.classList.add('status-cell', 'Ausente');
+            });
 
-                allChoirMembersBySection[sectionName].forEach(member => {
-                    const row = attendanceTableBody.insertRow();
-                    row.insertCell(0).textContent = member; // Nombre (misma posición)
+            totalRegistradosSpan.textContent = registeredCount;
+            totalTardeSpan.textContent = lateCount;
+            totalAusentesSpan.textContent = absentMembers.length;
 
-                    let estadoDisplay = ''; // Variable para el estado a mostrar (se inicializa vacía)
-                    let horaDisplay = '-'; // Variable para la hora a mostrar
-                    let fechaDisplay = '-'; // Variable para la fecha a mostrar
-
-                    if (attendanceMap.has(member)) {
-                        const entry = attendanceMap.get(member);
-                        estadoDisplay = entry.estado;
-                        horaDisplay = entry.hora; // Asumo que entry.hora es un string como "HH:MM:SS"
-                        fechaDisplay = entry.fecha; // Asumo que entry.fecha es un string como "YYYY-MM-DD"
-
-                        // Re-formatear fecha para mostrar "DD/MM/AA"
-                        if (fechaDisplay && typeof fechaDisplay === 'string' && fechaDisplay.includes('-')) {
-                            const parts = fechaDisplay.split('-');
-                            if (parts.length === 3) {
-                                fechaDisplay = `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`;
-                            }
-                        }
-
-                        // Re-formatear hora para mostrar "HH:MM"
-                        if (horaDisplay && typeof horaDisplay === 'string') {
-                            const timeParts = horaDisplay.split(':');
-                            if (timeParts.length >= 2) {
-                                horaDisplay = `${timeParts[0]}:${timeParts[1]}`; // Solo HH:MM
-                            } else {
-                                horaDisplay = '-'; // Fallback si no es un formato válido
-                            }
-                        } else {
-                            horaDisplay = '-';
-                        }
-
-                        countRegistrados++;
-                        if (estadoDisplay === 'Tarde') {
-                            countTarde++;
-                        } else if (estadoDisplay === 'Presente') {
-                            countPresente++;
-                        }
-                    } else {
-                        // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
-                        // Si el miembro no se registró, aplica la lógica de Ausente/Pendiente
-                        if (isPastDeadline) {
-                            estadoDisplay = 'Ausente';
-                            countAusente++; // Se incrementa el contador de ausentes solo si es realmente Ausente
-                        } else {
-                            // AQUÍ ESTÁ EL CAMBIO: Se deja la cadena vacía en lugar de 'Pendiente'
-                            estadoDisplay = ''; 
-                        }
-                        // fechaDisplay y horaDisplay permanecen como '-' por defecto
-                        // --- FIN DE LA MODIFICACIÓN ---
-                    }
-
-                    // Renderizar la fila con el estado, fecha y hora determinados
-                    const statusCell = row.insertCell(1);
-                    statusCell.textContent = estadoDisplay;
-                    // Se añade la clase CSS solo si hay un estado para evitar clases como "status-"
-                    if (estadoDisplay) {
-                        statusCell.classList.add('status-cell', `status-${estadoDisplay.replace(/\s+/g, '')}`);
-                    }
-
-                    row.insertCell(2).textContent = fechaDisplay; // Fecha
-                    row.insertCell(3).textContent = horaDisplay; // Hora
-                });
-            }
-
-            totalRegistradosSpan.textContent = countRegistrados;
-            totalPresentesSpan.textContent = countPresente;
-            totalTardeSpan.textContent = countTarde;
-
-            // --- INICIO DE LA MODIFICACIÓN (NO MODIFICAR NADA FUERA DE AQUÍ) ---
-            // El contador total de Ausentes ahora refleja directamente los que la lógica marcó como 'Ausente'.
-            totalAusentesSpan.textContent = countAusente;
-            // Se eliminó la condición de las 23:05 para que el total de Ausentes sea coherente
-            // con el estado individual de cada miembro según la nueva lógica de las 22:50.
-            // --- FIN DE LA MODIFICACIÓN ---
+            lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+            currentDateDisplay.textContent = `Asistencia para hoy: ${new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 
         } else {
             console.error('Error al obtener datos:', result.message);
@@ -214,17 +109,17 @@ async function fetchAttendanceData() {
         }
     } catch (error) {
         console.error('Error de conexión o de red:', error);
-        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script. O puede que el script de Google Sheets no esté funcionando.');
+        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
     } finally {
-        loadingMessage.style.display = 'none';
-        refreshButton.disabled = false;
-        lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+        loadingMessage.style.display = 'none'; // Ocultar mensaje de carga
+        refreshButton.disabled = false; // Habilitar botón
     }
 }
 
+// Event listener para el botón de actualizar
 refreshButton.addEventListener('click', fetchAttendanceData);
 
-updateClock();
-setInterval(updateClock, 1000);
-
+// Cargar datos al iniciar la página
 fetchAttendanceData();
+// Opcional: Actualizar automáticamente cada cierto tiempo (ej. cada 30 segundos)
+// setInterval(fetchAttendanceData, 30000); // 30000 ms = 30 segundos
