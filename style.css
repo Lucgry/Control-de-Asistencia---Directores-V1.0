@@ -67,15 +67,49 @@ h2 {
     background-color: #2c3e50;
     padding: 15px;
     border-radius: 8px;
-    font-size: 1.1em;
-    font-weight: bold;
     text-align: center;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Coloca el texto encima del número */
     justify-content: center;
     align-items: center;
     min-height: 80px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Una sombra sutil */
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Efecto al pasar el mouse */
+    font-size: 1.1em; /* Tamaño para el texto (Registrados, Presentes, etc.) */
+    font-weight: normal; /* El texto no tan en negrita como el número */
+    opacity: 0.8; /* Un poco más tenue el texto */
 }
+
+.summary-item:hover {
+    transform: translateY(-3px); /* Levanta un poco el elemento */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra más pronunciada */
+}
+
+.summary-item span {
+    font-size: 2.8em; /* ¡Número más grande! */
+    font-weight: 700;
+    margin-top: 5px;
+    line-height: 1; /* Asegura que no haya espacio extra */
+    display: block; /* Para que ocupe su propia línea */
+}
+
+/* Colores definitivos para cada categoría */
+.summary-item.registrados,
+.summary-item.tarde { /* Registrados y Tarde irán en Amarillo */
+    color: #f1c40f; 
+}
+.summary-item.presentes { /* Presentes en Verde */
+    color: #27ae60; 
+}
+.summary-item.ausentes { /* Ausentes en Rojo más oscuro */
+    color: #c0392b; 
+}
+
+/* Para asegurar que los números también tengan el color correcto (aunque ya lo tendrían por herencia) */
+.summary-item.registrados span { color: #f1c40f; }
+.summary-item.presentes span { color: #27ae60; }
+.summary-item.tarde span { color: #f1c40f; } /* ¡CORREGIDO: Amarillo para Tarde! */
+.summary-item.ausentes span { color: #c0392b; }
 
 .summary-item span {
     font-size: 2em;
