@@ -24,7 +24,7 @@ const allChoirMembersBySection = {
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Romina Andrea",
+        "Ponce Romina Andrea", // Corregí el nombre para que coincida con la planilla
         "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
@@ -78,7 +78,7 @@ function formatDateForInput(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
+    return `${year}-${month}-${day}`;
 }
 
 // Función para actualizar la hora actual
@@ -150,4 +150,135 @@ async function fetchAttendanceData() {
                 });
                 loadingMessage.style.display = 'none';
                 refreshButton.disabled = false;
-                return; // Salir
+                return; // Salir de la función
+            }
+
+            const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
+
+            let registeredCountForSelectedDay = 0;
+            let lateCountForSelectedDay = 0;
+            let presentCountForSelectedDay = 0;
+
+            const registeredMembersOnSelectedDay = new Set(); // Para llevar un registro de los que asistieron en el día seleccionado
+            
+            const recordsForSelectedDay = []; // Array para almacenar los registros del día seleccionado
+
+            // FILTRADO POR FECHA Y COLECTAR REGISTROS
+            attendanceEntries.forEach(entry => {
+                const memberName = entry[0]; // Columna A (Nombre)
+                const status = entry[1];     // Columna B (Estado)
+                const dateStr = entry[2];    // Columna C (Fecha)
+                const time = entry[3];       // Columna D (Hora de Registro)
+
+                // Convertir la fecha de la hoja (DD/MM/YYYY) a un objeto Date para comparación
+                const [day, month, year] = dateStr.split('/').map(Number);
+                const entryDate = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexados
+                entryDate.setHours(0, 0, 0, 0); // Normalizar a medianoche
+
+                if (entryDate.getTime() === selectedDate.getTime()) {
+                    registeredMembersOnSelectedDay.add(memberName); 
+                    registeredCountForSelectedDay++; 
+
+                    let statusChar = '';
+                    let statusClass = '';
+
+                    if (status === "Presente") {
+                        statusChar = 'P';
+                        statusClass = 'Presente';
+                    } else if (status === "Tarde") {
+                        statusChar = 'T';
+                        statusClass = 'Tarde';
+                    } else {
+                        statusChar = '-'; // En caso de estado inesperado
+                        statusClass = '';
+                    }
+                    
+                    // Buscar la sección del miembro para incluirla en el objeto de registro
+                    const memberInfo = allChoirMembers.find(m => m.name === memberName);
+                    const section = memberInfo ? memberInfo.section : "Desconocida"; // Asigna "Desconocida" si no se encuentra
+                    
+                    recordsForSelectedDay.push({
+                        name: memberName,
+                        statusChar: statusChar,
+                        statusClass: statusClass,
+                        date: dateStr,
+                        time: time,
+                        section: section // Añade la sección aquí
+                    });
+                }
+            });
+
+            // Determinar los miembros ausentes para el día SELECCIONADO y añadir su sección
+            const absentMembersOnSelectedDay = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
+            absentMembersOnSelectedDay.forEach(memberObj => {
+                recordsForSelectedDay.push({
+                    name: memberObj.name,
+                    statusChar: 'A',
+                    statusClass: 'Ausente',
+                    date: displayDate,
+                    time: '-',
+                    section: memberObj.section // Añade la sección aquí para ausentes
+                });
+            });
+
+            // Ordenar los registros del día seleccionado: 
+            // 1. Por estado (Presente, Tarde, Ausente)
+            // 2. Por cuerda (Soprano, Contralto, Tenor, Bajo)
+            // 3. Alfabéticamente por nombre
+            recordsForSelectedDay.sort((a, b) => {
+                const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
+                // Primero por estado
+                if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
+                    return statusOrder[a.statusChar] - statusOrder[b.statusChar];
+                }
+                // Luego por cuerda
+                if (sectionOrder[a.section] !== sectionOrder[b.section]) {
+                    return sectionOrder[a.section] - sectionOrder[b.section];
+                }
+                // Finalmente alfabéticamente por nombre
+                return a.name.localeCompare(b.name); 
+            });
+
+            // Llenar la tabla con los registros ordenados del día seleccionado
+            recordsForSelectedDay.forEach(rowData => {
+                const row = attendanceTableBody.insertRow();
+                row.insertCell(0).textContent = rowData.name; 
+                
+                const statusCell = row.insertCell(1); 
+                statusCell.textContent = rowData.statusChar;
+                statusCell.classList.add('status-cell', rowData.statusClass);
+
+                row.insertCell(2).textContent = rowData.date; 
+                row.insertCell(3).textContent = rowData.time; 
+            });
+
+            // Actualizar los resúmenes para el DÍA SELECCIONADO
+            totalRegistradosSpan.textContent = registeredCountForSelectedDay;
+            totalPresentesSpan.textContent = presentCountForSelectedDay;
+            totalTardeSpan.textContent = lateCountForSelectedDay;
+            totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
+
+            lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+
+        } else {
+            console.error('Error al obtener datos:', result.message);
+            alert('Error al cargar la asistencia: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error de conexión o de red:', error);
+        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
+    } finally {
+        loadingMessage.style.display = 'none'; // Ocultar mensaje de carga
+        refreshButton.disabled = false; // Habilitar botón
+    }
+}
+
+// Event listener para el botón de actualizar
+refreshButton.addEventListener('click', fetchAttendanceData);
+
+// Inicializar el selector de fecha y cargar los datos al iniciar la página
+initializeDateSelector();
+fetchAttendanceData(); // Cargar datos para el día actual al iniciar
+
+// Opcional: Actualizar automáticamente la tabla cada cierto tiempo (ej. cada 30 segundos)
+// setInterval(fetchAttendanceData, 30000);
