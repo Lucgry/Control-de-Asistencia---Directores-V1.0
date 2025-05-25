@@ -1,6 +1,6 @@
 {
   "name": "Asistencia",
-  "short_name": "Asistencia CCS",
+  "short_name": "Asistencia",
   "description": "Aplicación para visualizar la asistencia de los miembros del coro.",
   "start_url": "./control.html", 
   "display": "standalone",
