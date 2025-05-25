@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Asistencia CCS</title>
+    <title>Control Asistencia Coro - Coro UNA Salta</title> 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -15,7 +15,9 @@
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Asistencia"> <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-title" content="Asistencia"> 
+
+    <meta name="theme-color" content="#2c3e50">
 
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
@@ -75,7 +77,7 @@
             margin-bottom: 20px;
         }
 
-        /* NUEVO: Contenedor para el selector de fecha */
+        /* Contenedor para el selector de fecha */
         .date-picker-container {
             margin-bottom: 20px;
         }
@@ -230,15 +232,16 @@
 </head>
 <body>
     <div class="container">
+        <h1>Control de Asistencia del Coro</h1> 
         <div class="logo-container">
-            <img src="logo.png" alt="Logo del Coro UNA Salta">
+            <img src="logo.png" alt="Logo del Coro UNA Salta"> 
         </div>
-        <h1>Control de Asistencia</h1>
         
         <div class="date-picker-container">
             <label for="date-selector">Seleccionar Fecha:</label>
             <input type="date" id="date-selector">
         </div>
+
         <h2 id="current-date"></h2>
         <div id="current-time"></div> 
 
@@ -253,7 +256,7 @@
                 Llegadas Tarde:<br><span id="total-tarde">0</span>
             </div>
             <div class="summary-item ausentes">
-                Ausentes:<br><span id="total-ausentes">---</span>
+                Posibles Ausentes:<br><span id="total-ausentes">---</span> 
             </div>
         </div>
 
@@ -265,9 +268,9 @@
                 <thead>
                     <tr>
                         <th>Nombre</th>
-                        <th>Estado</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
+                        <th>Estado</th> 
+                        <th>Fecha</th>  
+                        <th>Hora</th>   
                     </tr>
                 </thead>
                 <tbody>
