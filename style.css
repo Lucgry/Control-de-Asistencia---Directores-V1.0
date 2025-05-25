@@ -96,15 +96,12 @@ h2 {
     border-radius: 8px; /* Aplica bordes redondeados al contenedor del scroll */
 }
 
-/* Estilos de Tabla - ¡MODIFICACIÓN CLAVE AQUÍ! */
+/* Estilos de Tabla */
 table {
     width: 100%;
     border-collapse: collapse;
     background-color: #2c3e50;
-    table-layout: fixed; /* ¡IMPORTANTE! Esto asegura que las columnas respeten los anchos definidos */
-    /* ¡ELIMINADA LA PROPIEDAD min-width: 600px; DE AQUÍ!
-       Esta propiedad hacía que la tabla siempre fuera de al menos 600px,
-       causando que se desbordara en pantallas pequeñas de celular. */
+    table-layout: fixed; /* Asegura que las columnas respeten los anchos definidos */
 }
 
 th, td {
@@ -168,20 +165,20 @@ tbody tr:hover {
 .status-cell.status-Tarde { color: #9b59b6; } /* Morado (Amatista) */
 .status-cell.status-Ausente { color: #c0392b; } /* Nuevo color: Rojo más oscuro */
 
-/* Estilos para los encabezados de cuerda */
+/* Estilos para los encabezados de cuerda (nuevos estilos) */
 tr.section-header {
-    background-color: #44607d;
-    color: #f1c40f;
+    background-color: #44607d; /* Un color de fondo que contraste */
+    color: #f1c40f; /* Amarillo para el texto */
     font-weight: 700;
     text-align: center;
     font-size: 1.2em;
     position: sticky; /* Permite que el encabezado de sección se "pegue" al hacer scroll */
-    top: 0;
-    z-index: 1;
+    top: 0; /* Se pega en la parte superior del contenedor de la tabla */
+    z-index: 1; /* Asegura que esté por encima de otras filas al hacer scroll */
 }
 tr.section-header td {
-    border-bottom: 2px solid #f1c40f;
-    padding: 10px 15px;
+    border-bottom: 2px solid #f1c40f; /* Línea separadora */
+    padding: 10px 15px; /* Espaciado */
 }
 
 .loading-message {
@@ -250,8 +247,6 @@ button:disabled {
         font-size: 0.85em;
     }
 
-    /* Las reglas de ancho de columna ya se aplican desde arriba gracias a table-layout: fixed,
-       pero puedes ajustarlas más aquí si lo necesitas para móviles muy específicos. */
     th:nth-child(1),
     td:nth-child(1) {
         width: 30%; /* Ajusta el ancho para el nombre en móvil */
@@ -271,6 +266,7 @@ button:disabled {
 
     tr.section-header td {
         font-size: 1em;
+        padding: 8px 10px; /* Ajuste para encabezados de sección en móviles */
     }
 
     button {
