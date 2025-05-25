@@ -63,8 +63,7 @@ async function fetchAttendanceData() {
 
 
     try {
-        // *** CAMBIO CLAVE: Llama al script SIN parámetros, asumiendo que devuelve todos los datos. ***
-        // URL confirmada y sin parámetros de fecha.
+        // Llama al script SIN parámetros, asumiendo que el Apps Script devolverá todos los datos.
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
