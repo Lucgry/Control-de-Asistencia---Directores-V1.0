@@ -23,7 +23,7 @@ const allChoirMembersBySection = {
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Romina Andrea", // <-- ¡CORREGIDO AQUI! PARA QUE COINCIDA CON TU JSON
+        "Romina Andrea",
         "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
@@ -77,7 +77,7 @@ function formatDateForInput(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
+    return `${year}-${month}-${day}`;
 }
 
 // Función para actualizar la hora actual
@@ -96,7 +96,6 @@ function initializeDateSelector() {
     dateSelector.addEventListener('change', fetchAttendanceData);
 }
 
-
 async function fetchAttendanceData() {
     refreshButton.disabled = true; // Deshabilitar botón mientras carga
     loadingMessage.style.display = 'block'; // Mostrar mensaje de carga
@@ -114,7 +113,6 @@ async function fetchAttendanceData() {
     const displayDate = new Date(selectedDateStr).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDate}`;
 
-
     try {
         const response = await fetch(GOOGLE_SCRIPT_READ_URL);
         if (!response.ok) {
@@ -125,13 +123,14 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const data = result.data;
             
-            if (data.length <= 1) { 
+            if (data.length <= 1) { // Si solo hay encabezados o no hay datos
                 totalRegistradosSpan.textContent = "0";
                 totalPresentesSpan.textContent = "0"; 
                 totalTardeSpan.textContent = "0";
                 totalAusentesSpan.textContent = allChoirMembers.length; 
                 lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
                 
+                // Mostrar todos los miembros como Ausentes
                 allChoirMembers.sort((a, b) => {
                     if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                         return sectionOrder[a.section] - sectionOrder[b.section];
@@ -172,12 +171,10 @@ async function fetchAttendanceData() {
                 entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
                 console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada UTC medianoche): ${entryDate.toISOString()}`); // Debug
                 
-                // Para mostrar la fecha y hora, podemos usar los objetos Date originales
-                // o crear nuevos objetos para no afectar la comparación.
+                // Para mostrar la fecha y hora, usamos los objetos Date originales
                 const displayEntryDate = new Date(dateIsoStr).toLocaleDateString('es-AR');
                 const entryTime = new Date(timeIsoStr);
                 const displayEntryTime = entryTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
 
                 // ***** LÓGICA CLAVE: COMPARACIÓN DE FECHAS *****
                 // Comparamos los getTime() de las fechas normalizadas a UTC medianoche
@@ -198,7 +195,7 @@ async function fetchAttendanceData() {
                         statusClass = 'Tarde';
                         lateCountForSelectedDay++;
                     } else {
-                        statusChar = '-'; 
+                        statusChar = '-'; // Por si hay otro estado inesperado
                         statusClass = '';
                     }
                     
@@ -226,12 +223,13 @@ async function fetchAttendanceData() {
                     name: memberObj.name,
                     statusChar: 'A',
                     statusClass: 'Ausente',
-                    date: displayDate,
+                    date: displayDate, // Usamos la fecha seleccionada para los ausentes
                     time: '-',
                     section: memberObj.section 
                 });
             });
 
+            // Ordenar los registros para la tabla
             recordsForSelectedDay.sort((a, b) => {
                 const statusOrder = { 'P': 1, 'T': 2, 'A': 3, '-': 4 };
                 if (statusOrder[a.statusChar] !== statusOrder[b.statusChar]) {
@@ -243,9 +241,39 @@ async function fetchAttendanceData() {
                 return a.name.localeCompare(b.name); 
             });
 
+            // Llenar la tabla
             recordsForSelectedDay.forEach(rowData => {
                 const row = attendanceTableBody.insertRow();
                 row.insertCell(0).textContent = rowData.name; 
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
-                statusCell.classList.add
+                statusCell.classList.add('status-cell', rowData.statusClass);
+                row.insertCell(2).textContent = rowData.date; 
+                row.insertCell(3).textContent = rowData.time; 
+            });
+
+            // Actualizar contadores
+            totalRegistradosSpan.textContent = registeredCountForSelectedDay;
+            totalPresentesSpan.textContent = presentCountForSelectedDay;
+            totalTardeSpan.textContent = lateCountForSelectedDay;
+            totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
+
+            lastUpdatedSpan.textContent = `Última actualización: ${new Date().toLocaleTimeString('es-AR')}`;
+
+        } else {
+            console.error('Error al obtener datos:', result.message);
+            alert('Error al cargar la asistencia: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error de conexión o de red:', error);
+        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
+    } finally {
+        loadingMessage.style.display = 'none'; 
+        refreshButton.disabled = false; 
+    }
+}
+
+// Event Listeners y Inicialización
+refreshButton.addEventListener('click', fetchAttendanceData);
+initializeDateSelector();
+fetchAttendanceData(); // Carga los datos al iniciar la página
