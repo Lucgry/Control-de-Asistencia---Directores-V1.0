@@ -233,7 +233,7 @@ async function fetchAttendanceData() {
                     const headerRow = attendanceTableBody.insertRow();
                     headerRow.classList.add('section-header'); // Para darle estilo CSS
                     const headerCell = headerRow.insertCell(0);
-                    headerCell.colSpan = 4; // Para que ocupe todas las columnas
+                    headerCell.colSpan = 3; // Para que ocupe todas las columnas
                     headerCell.textContent = currentSection;
                 }
 
@@ -242,7 +242,6 @@ async function fetchAttendanceData() {
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
                 statusCell.classList.add('status-cell', rowData.statusClass);
-                row.insertCell(2).textContent = rowData.date; 
                 row.insertCell(3).textContent = rowData.time; 
             });
 
