@@ -83,7 +83,7 @@ function formatDateForInput(date) {
     return `${year}-${month}-${day}`;
 }
 
-// NUEVA Función para formatear la fecha a DD/MM/AA
+// Función para formatear la fecha a DD/MM/AA
 function formatDisplayDate(date) {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -91,7 +91,7 @@ function formatDisplayDate(date) {
     return `${day}/${month}/${year}`;
 }
 
-// NUEVA Función para formatear la hora a HH:MM
+// Función para formatear la hora a HH:MM
 function formatDisplayTime(date) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -105,6 +105,13 @@ function updateCurrentTime() {
 }
 // Actualiza la hora cada segundo
 setInterval(updateCurrentTime, 1000);
+
+// Función para normalizar una fecha a medianoche LOCAL
+function normalizeDateToLocalMidnight(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0); // Establece horas, minutos, segundos, milisegundos a 0 en la zona horaria local
+    return d;
+}
 
 // Inicializa el selector de fecha y carga los datos del día actual al inicio
 function initializeDateSelector() {
@@ -122,12 +129,15 @@ async function fetchAttendanceData() {
     // Obtener la fecha seleccionada del input
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
     
-    // Crear un objeto Date para la fecha seleccionada y normalizarlo a la medianoche UTC
-    const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); 
-    console.log(`Fecha seleccionada (normalizada a UTC medianoche para comparación): ${selectedDate.toISOString()}`); // Debug
+    // Crear un objeto Date para la fecha seleccionada, asegurándose de que sea en la zona horaria LOCAL
+    // Al usar 'T00:00:00', estamos diciendo que es la medianoche en la zona horaria *del navegador*.
+    const selectedDate = new Date(selectedDateStr + 'T00:00:00'); 
+    
+    // ** Depuración: Fecha seleccionada y su día de la semana LOCAL **
+    console.log(`Fecha seleccionada (desde input, normalizada a medianoche local): ${selectedDate.toISOString()} (Día ${selectedDate.getDay()})`);
 
-    // ** Lógica para verificar si es un día de ensayo **
-    const selectedDayOfWeek = selectedDate.getUTCDay(); // Obtiene el día de la semana (0=Domingo, 1=Lunes, 2=Martes, etc.)
+    // Lógica para verificar si es un día de ensayo (usando getDay() para la zona horaria local)
+    const selectedDayOfWeek = selectedDate.getDay(); // Obtiene el día de la semana LOCAL (0=Domingo, 1=Lunes, etc.)
     if (!REHEARSAL_DAYS.includes(selectedDayOfWeek)) {
         attendanceTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #f1c40f;">No hay ensayo en esta fecha. Selecciona Lunes, Miércoles o Viernes.</td></tr>`;
         totalRegistradosSpan.textContent = '0';
@@ -141,9 +151,8 @@ async function fetchAttendanceData() {
     }
     // ** Fin Lógica de día de ensayo **
 
-    // Para mostrar la fecha, creamos un objeto Date que JavaScript interpretará en la zona horaria local.
-    const dateForDisplay = new Date(selectedDateStr + 'T12:00:00'); 
-    const displayDateFull = dateForDisplay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // Para mostrar la fecha
+    const displayDateFull = selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
 
     try {
@@ -172,10 +181,15 @@ async function fetchAttendanceData() {
                     const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
                     const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
-                    const entryDate = new Date(dateIsoStr); 
-                    entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
+                    // Normalizar la fecha de la hoja a medianoche LOCAL para comparación
+                    const entryDate = normalizeDateToLocalMidnight(dateIsoStr); 
                     
+                    // ** Depuración: Fechas que se están comparando **
+                    console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada LOCAL medianoche): ${entryDate.toISOString()}`);
+
+
                     if (entryDate.getTime() === selectedDate.getTime()) {
+                        console.log(`    -> Coincidencia de fecha para ${memberName}!`); // Debug de coincidencia
                         registeredMembersOnSelectedDay.add(memberName); 
                         registeredCountForSelectedDay++; 
 
@@ -205,6 +219,8 @@ async function fetchAttendanceData() {
                             time: formatDisplayTime(new Date(timeIsoStr)), 
                             section: section 
                         });
+                    } else {
+                         console.log(`    -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada LOCAL): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada LOCAL): ${selectedDate.toISOString()}`); // Debug sin coincidencia
                     }
                 });
             }
