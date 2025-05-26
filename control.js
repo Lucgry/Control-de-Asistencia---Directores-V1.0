@@ -140,7 +140,7 @@ async function fetchAttendanceData() {
     const selectedDayOfWeek = selectedDate.getDay(); // Obtiene el día de la semana LOCAL (0=Domingo, 1=Lunes, etc.)
     if (!REHEARSAL_DAYS.includes(selectedDayOfWeek)) {
         attendanceTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #f1c40f;">No hay ensayo en esta fecha. Selecciona Lunes, Miércoles o Viernes.</td></tr>`;
-        totalRegistradosSpan.textContent = '0';
+        totalRegistradosSpan.textContent = allChoirMembers.length; // Muestra el total de miembros aunque no haya ensayo
         totalPresentesSpan.textContent = '0';
         totalTardeSpan.textContent = '0';
         totalAusentesSpan.textContent = '0';
@@ -165,11 +165,10 @@ async function fetchAttendanceData() {
         if (result.status === "success") {
             const data = result.data;
             
-            let registeredCountForSelectedDay = 0;
-            let lateCountForSelectedDay = 0;
             let presentCountForSelectedDay = 0;
+            let lateCountForSelectedDay = 0;
 
-            const registeredMembersOnSelectedDay = new Set(); 
+            const registeredMembersOnSelectedDay = new Set(); // Para saber quién YA tiene un registro (P, T, A)
             const recordsForSelectedDay = []; 
 
             if (data.length > 1) { // Si hay datos más allá de los encabezados
@@ -177,7 +176,7 @@ async function fetchAttendanceData() {
 
                 attendanceEntries.forEach(entry => {
                     const memberName = entry[0]; // Columna A (Nombre)
-                    const status = entry[1];     // Columna B (Estado)
+                    const statusFromSheet = entry[1];    // Columna B (Estado como viene de la hoja)
                     const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
                     const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
 
@@ -185,28 +184,37 @@ async function fetchAttendanceData() {
                     const entryDate = normalizeDateToLocalMidnight(dateIsoStr); 
                     
                     // ** Depuración: Fechas que se están comparando **
-                    console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada LOCAL medianoche): ${entryDate.toISOString()}`);
+                    // console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada LOCAL medianoche): ${entryDate.toISOString()}`);
 
 
                     if (entryDate.getTime() === selectedDate.getTime()) {
-                        console.log(`    -> Coincidencia de fecha para ${memberName}!`); // Debug de coincidencia
+                        // console.log(`    -> Coincidencia de fecha para ${memberName}!`); // Debug de coincidencia
                         registeredMembersOnSelectedDay.add(memberName); 
-                        registeredCountForSelectedDay++; 
 
                         let statusChar = '';
                         let statusClass = '';
+                        let displayTime = '-'; // Por defecto, si es ausente, la hora es '-'
 
-                        if (status === "Presente") {
+                        // MODIFICACIÓN CLAVE AQUÍ: MANEJO DE ESTADOS
+                        if (statusFromSheet === "Presente" || statusFromSheet === "P") {
                             statusChar = 'P';
                             statusClass = 'Presente';
                             presentCountForSelectedDay++;
-                        } else if (status === "Tarde") {
+                            displayTime = formatDisplayTime(new Date(timeIsoStr)); // Solo hay hora si está Presente o Tarde
+                        } else if (statusFromSheet === "Tarde" || statusFromSheet === "T") {
                             statusChar = 'T';
                             statusClass = 'Tarde';
                             lateCountForSelectedDay++;
-                        } else {
+                            displayTime = formatDisplayTime(new Date(timeIsoStr)); // Solo hay hora si está Presente o Tarde
+                        } else if (statusFromSheet === "Ausente" || statusFromSheet === "A") { // AHORA SÍ MANEJAMOS "Ausente" o "A" de la hoja
+                            statusChar = 'A';
+                            statusClass = 'Ausente';
+                            // No sumamos a ausentes aquí, se calculará al final.
+                            // La hora ya está en '-' por defecto
+                        } else { // Para cualquier otro valor inesperado en la hoja
                             statusChar = '-'; 
-                            statusClass = '';
+                            statusClass = ''; // No aplica ninguna clase de color
+                            displayTime = '-';
                         }
                         
                         const memberInfo = allChoirMembers.find(m => m.name === memberName);
@@ -216,18 +224,18 @@ async function fetchAttendanceData() {
                             name: memberName,
                             statusChar: statusChar,
                             statusClass: statusClass,
-                            time: formatDisplayTime(new Date(timeIsoStr)), 
+                            time: displayTime, 
                             section: section 
                         });
                     } else {
-                         console.log(`    -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada LOCAL): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada LOCAL): ${selectedDate.toISOString()}`); // Debug sin coincidencia
+                            // console.log(`    -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada LOCAL): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada LOCAL): ${selectedDate.toISOString()}`); // Debug sin coincidencia
                     }
                 });
             }
 
-            // Determinar los miembros ausentes para el día SELECCIONADO
-            const absentMembersOnSelectedDay = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
-            absentMembersOnSelectedDay.forEach(memberObj => {
+            // Determinar los miembros ausentes que NO tienen registro en la hoja para el día SELECCIONADO
+            const trulyAbsentMembers = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
+            trulyAbsentMembers.forEach(memberObj => {
                 recordsForSelectedDay.push({
                     name: memberObj.name,
                     statusChar: 'A',
@@ -265,15 +273,19 @@ async function fetchAttendanceData() {
                 row.insertCell(0).textContent = rowData.name; 
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
-                statusCell.classList.add('status-cell', rowData.statusClass);
+                // MODIFICACIÓN: Aquí se asegura que las clases se apliquen para el CSS de colores
+                if (rowData.statusClass) { // Solo añade la clase si no está vacía
+                    statusCell.classList.add('status-cell', `status-${rowData.statusClass}`);
+                }
                 row.insertCell(2).textContent = rowData.time; // La hora ahora va en el índice 2
             });
 
             // Actualizar contadores
-            totalRegistradosSpan.textContent = registeredCountForSelectedDay;
+            totalRegistradosSpan.textContent = allChoirMembers.length; // Total de miembros en la lista
             totalPresentesSpan.textContent = presentCountForSelectedDay;
             totalTardeSpan.textContent = lateCountForSelectedDay;
-            totalAusentesSpan.textContent = absentMembersOnSelectedDay.length;
+            // Calcular Ausentes: Total de miembros - (Presentes + Tarde)
+            totalAusentesSpan.textContent = allChoirMembers.length - (presentCountForSelectedDay + lateCountForSelectedDay);
 
             lastUpdatedSpan.textContent = `Última actualización: ${formatDisplayTime(new Date())}`; // Usa el nuevo formato de hora
 
@@ -293,4 +305,5 @@ async function fetchAttendanceData() {
 // Event Listeners y Inicialización
 refreshButton.addEventListener('click', fetchAttendanceData);
 initializeDateSelector();
+updateCurrentTime(); // Llama a la función para mostrar la hora al cargar
 fetchAttendanceData(); // Carga los datos al iniciar la página
