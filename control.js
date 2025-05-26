@@ -120,11 +120,15 @@ async function fetchAttendanceData() {
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
     
     // Crear un objeto Date para la fecha seleccionada y normalizarlo a la medianoche UTC
-    const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); // Forzar a UTC medianoche
-    console.log(`Fecha seleccionada (normalizada a UTC medianoche): ${selectedDate.toISOString()}`); // Debug
+    // ESTO SE MANTIENE ASÍ porque es crucial para la lógica de comparación con los datos de la hoja
+    const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); 
+    console.log(`Fecha seleccionada (normalizada a UTC medianoche para comparación): ${selectedDate.toISOString()}`); // Debug
 
-    // Formatear la fecha seleccionada para mostrar en el H2
-    const displayDateFull = new Date(selectedDateStr).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // *** MODIFICACIÓN AQUÍ: Para mostrar la fecha correctamente en el H2 ***
+    // Se crea un objeto Date para la fecha seleccionada que JavaScript interpretará en la zona horaria local.
+    // Añadir una hora central (T12:00:00) ayuda a evitar desfases por zona horaria en los límites del día.
+    const dateForDisplay = new Date(selectedDateStr + 'T12:00:00'); 
+    const displayDateFull = dateForDisplay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
 
     try {
