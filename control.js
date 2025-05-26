@@ -130,7 +130,10 @@ async function fetchAttendanceData() {
 
     // Obtener la fecha seleccionada del input y normalizarla a medianoche local
     const selectedDateStr = dateSelector.value; 
-    const selectedDate = normalizeDateToLocalMidnight(new Date(selectedDateStr)); 
+    // AQUÍ ES DONDE ESTÁ LA MODIFICACIÓN:
+    const parts = selectedDateStr.split('-'); // 'YYYY-MM-DD'
+    const selectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    selectedDate.setHours(0, 0, 0, 0); // Normalizar a medianoche local, explícitamente.
     
     // Obtener la fecha y hora actual del usuario (para la lógica de "hoy")
     const now = new Date();
