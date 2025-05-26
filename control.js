@@ -1,5 +1,8 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEVkvQ7eCh0FT9pPHlLL7veqTfOiyp7_0uGCOx6qxuKIeXXheXL-62IQIopz7weQ/exec'; 
+
+// Días de la semana de ensayo (0=Domingo, 1=Lunes, 2=Martes, etc.)
+const REHEARSAL_DAYS = [1, 3, 5]; // Lunes, Miércoles, Viernes
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
@@ -120,12 +123,25 @@ async function fetchAttendanceData() {
     const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
     
     // Crear un objeto Date para la fecha seleccionada y normalizarlo a la medianoche UTC
-    // ESTO SE MANTIENE ASÍ porque es crucial para la lógica de comparación con los datos de la hoja
     const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); 
     console.log(`Fecha seleccionada (normalizada a UTC medianoche para comparación): ${selectedDate.toISOString()}`); // Debug
 
+    // ** Lógica para verificar si es un día de ensayo **
+    const selectedDayOfWeek = selectedDate.getUTCDay(); // Obtiene el día de la semana (0=Domingo, 1=Lunes, 2=Martes, etc.)
+    if (!REHEARSAL_DAYS.includes(selectedDayOfWeek)) {
+        attendanceTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #f1c40f;">No hay ensayo en esta fecha. Selecciona Lunes, Miércoles o Viernes.</td></tr>`;
+        totalRegistradosSpan.textContent = '0';
+        totalPresentesSpan.textContent = '0';
+        totalTardeSpan.textContent = '0';
+        totalAusentesSpan.textContent = '0';
+        lastUpdatedSpan.textContent = `Última actualización: --`;
+        loadingMessage.style.display = 'none';
+        refreshButton.disabled = false;
+        return; // Detiene la ejecución si no es un día de ensayo
+    }
+    // ** Fin Lógica de día de ensayo **
+
     // Para mostrar la fecha, creamos un objeto Date que JavaScript interpretará en la zona horaria local.
-    // Esto asegura que la fecha mostrada sea exactamente la seleccionada, sin desfases por UTC.
     const dateForDisplay = new Date(selectedDateStr + 'T12:00:00'); 
     const displayDateFull = dateForDisplay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
@@ -158,10 +174,8 @@ async function fetchAttendanceData() {
 
                     const entryDate = new Date(dateIsoStr); 
                     entryDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
-                    console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada UTC medianoche): ${entryDate.toISOString()}`); // Debug
                     
                     if (entryDate.getTime() === selectedDate.getTime()) {
-                        console.log(`  -> ¡Coincidencia de fecha! ${memberName} registrado para el día seleccionado.`); // Debug
                         registeredMembersOnSelectedDay.add(memberName); 
                         registeredCountForSelectedDay++; 
 
@@ -182,19 +196,15 @@ async function fetchAttendanceData() {
                         }
                         
                         const memberInfo = allChoirMembers.find(m => m.name === memberName);
-                        console.log(`  -> Nombre de hoja: "${memberName}", Coincidencia en allChoirMembers:`, memberInfo ? memberInfo.name : 'NO ENCONTRADO'); // Debug
                         const section = memberInfo ? memberInfo.section : "Desconocida"; 
                         
                         recordsForSelectedDay.push({
                             name: memberName,
                             statusChar: statusChar,
                             statusClass: statusClass,
-                            // date: formatDisplayDate(new Date(dateIsoStr)), // LA COLUMNA FECHA FUE ELIMINADA INTENCIONALMENTE
                             time: formatDisplayTime(new Date(timeIsoStr)), 
                             section: section 
                         });
-                    } else {
-                        console.log(`  -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada): ${selectedDate.toISOString()}`); // Debug
                     }
                 });
             }
@@ -206,7 +216,6 @@ async function fetchAttendanceData() {
                     name: memberObj.name,
                     statusChar: 'A',
                     statusClass: 'Ausente',
-                    // date: formatDisplayDate(new Date(selectedDateStr)), // LA COLUMNA FECHA FUE ELIMINADA INTENCIONALMENTE
                     time: '-',
                     section: memberObj.section 
                 });
@@ -241,8 +250,7 @@ async function fetchAttendanceData() {
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
                 statusCell.classList.add('status-cell', rowData.statusClass);
-                // ESTA ES LA LÍNEA MODIFICADA POR EL ERROR IndexSizeError
-                row.insertCell(2).textContent = rowData.time; // LA HORA AHORA VA EN EL ÍNDICE 2
+                row.insertCell(2).textContent = rowData.time; // La hora ahora va en el índice 2
             });
 
             // Actualizar contadores
