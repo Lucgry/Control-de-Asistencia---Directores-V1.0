@@ -195,6 +195,18 @@ async function fetchAttendanceData() {
                         let statusClass = '';
                         let displayTime = '-'; // Por defecto, si es ausente, la hora es '-'
 
+                        // Obtener el día de la semana y la hora actual para la lógica de Ausentes
+                        const todayForAbsentLogic = new Date(); // Usamos una nueva instancia para evitar posibles conflictos de zona horaria si selectedDate fuera de otro día
+                        const dayOfWeekForAbsentLogic = todayForAbsentLogic.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+                        const currentHourForAbsentLogic = todayForAbsentLogic.getHours(); // La hora en formato 24h
+
+                        // Días de ensayo: 1 (Lunes), 3 (Miércoles), 5 (Viernes)
+                        const isRehearsalDayForAbsentLogic = (dayOfWeekForAbsentLogic === 1 || dayOfWeekForAbsentLogic === 3 || dayOfWeekForAbsentLogic === 5);
+
+                        // Condición para mostrar 'A' solo después de las 23:00 en días de ensayo
+                        const showAbsentAfterRehearsal = (isRehearsalDayForAbsentLogic && currentHourForAbsentLogic >= 23);
+
+
                         // MODIFICACIÓN CLAVE AQUÍ: MANEJO DE ESTADOS
                         if (statusFromSheet === "Presente" || statusFromSheet === "P") {
                             statusChar = 'P';
@@ -206,13 +218,21 @@ async function fetchAttendanceData() {
                             statusClass = 'Tarde';
                             lateCountForSelectedDay++;
                             displayTime = formatDisplayTime(new Date(timeIsoStr)); // Solo hay hora si está Presente o Tarde
-                        } else if (statusFromSheet === "Ausente" || statusFromSheet === "A") { // AHORA SÍ MANEJAMOS "Ausente" o "A" de la hoja
-                            statusChar = 'A';
-                            statusClass = 'Ausente';
-                            // No sumamos a ausentes aquí, se calculará al final.
-                            // La hora ya está en '-' por defecto
+                        } else if (statusFromSheet === "Ausente" || statusFromSheet === "A") {
+                            // Solo mostramos 'A' si es día de ensayo Y después de las 23:00
+                            if (showAbsentAfterRehearsal) {
+                                statusChar = 'A';
+                                statusClass = 'Ausente';
+                                // No sumamos a ausentes aquí, se calculará al final.
+                                // La hora ya está en '-' por defecto
+                            } else {
+                                // Si es ausente pero no cumple la condición de día/hora, mostrar guion
+                                statusChar = '-';
+                                statusClass = ''; // No aplica ninguna clase de color
+                                displayTime = '-';
+                            }
                         } else { // Para cualquier otro valor inesperado en la hoja
-                            statusChar = '-'; 
+                            statusChar = '-';
                             statusClass = ''; // No aplica ninguna clase de color
                             displayTime = '-';
                         }
@@ -236,10 +256,25 @@ async function fetchAttendanceData() {
             // Determinar los miembros ausentes que NO tienen registro en la hoja para el día SELECCIONADO
             const trulyAbsentMembers = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
             trulyAbsentMembers.forEach(memberObj => {
+                // Aplicar la misma lógica de día/hora para los ausentes "realmente" ausentes
+                const todayForAbsentLogic = new Date();
+                const dayOfWeekForAbsentLogic = todayForAbsentLogic.getDay();
+                const currentHourForAbsentLogic = todayForAbsentLogic.getHours();
+                const isRehearsalDayForAbsentLogic = (dayOfWeekForAbsentLogic === 1 || dayOfWeekForAbsentLogic === 3 || dayOfWeekForAbsentLogic === 5);
+                const showAbsentAfterRehearsal = (isRehearsalDayForAbsentLogic && currentHourForAbsentLogic >= 23);
+
+                let statusCharForAbsent = '-';
+                let statusClassForAbsent = '';
+
+                if (showAbsentAfterRehearsal) {
+                    statusCharForAbsent = 'A';
+                    statusClassForAbsent = 'Ausente';
+                }
+
                 recordsForSelectedDay.push({
                     name: memberObj.name,
-                    statusChar: 'A',
-                    statusClass: 'Ausente',
+                    statusChar: statusCharForAbsent,
+                    statusClass: statusClassForAbsent,
                     time: '-',
                     section: memberObj.section 
                 });
@@ -285,19 +320,31 @@ async function fetchAttendanceData() {
             totalPresentesSpan.textContent = presentCountForSelectedDay;
             totalTardeSpan.textContent = lateCountForSelectedDay;
             // Calcular Ausentes: Total de miembros - (Presentes + Tarde)
-            totalAusentesSpan.textContent = allChoirMembers.length - (presentCountForSelectedDay + lateCountForSelectedDay);
+            // Esta cuenta debe reflejar los ausentes que se muestran como 'A' en la tabla.
+            // Para ello, contamos cuántos miembros tienen statusChar 'A' en recordsForSelectedDay
+            const displayedAbsentCount = recordsForSelectedDay.filter(record => record.statusChar === 'A').length;
+            totalAusentesSpan.textContent = displayedAbsentCount;
 
             lastUpdatedSpan.textContent = `Última actualización: ${formatDisplayTime(new Date())}`; // Usa el nuevo formato de hora
 
         } else {
             console.error('Error al obtener datos:', result.message);
-            alert('Error al cargar la asistencia: ' + result.message);
+            // Reemplazado alert() con un mensaje en la interfaz
+            loadingMessage.textContent = 'Error al cargar la asistencia: ' + result.message;
+            loadingMessage.style.color = '#e74c3c'; // Rojo para error
+            loadingMessage.style.display = 'block';
         }
     } catch (error) {
         console.error('Error de conexión o de red:', error);
-        alert('No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.');
+        // Reemplazado alert() con un mensaje en la interfaz
+        loadingMessage.textContent = 'No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.';
+        loadingMessage.style.color = '#e74c3c'; // Rojo para error
+        loadingMessage.style.display = 'block';
     } finally {
-        loadingMessage.style.display = 'none'; 
+        // Ocultar mensaje de carga solo si no es un mensaje de error persistente
+        if (loadingMessage.style.color !== 'rgb(231, 76, 60)') { // Verifica si el color no es rojo de error
+             loadingMessage.style.display = 'none'; 
+        }
         refreshButton.disabled = false; 
     }
 }
