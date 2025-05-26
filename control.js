@@ -106,7 +106,7 @@ function updateCurrentTime() {
 // Actualiza la hora cada segundo
 setInterval(updateCurrentTime, 1000);
 
-// Función para normalizar una fecha a medianoche LOCAL
+// Función para normalizar una fecha a medianoche LOCAL (sin información de hora)
 function normalizeDateToLocalMidnight(date) {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0); // Establece horas, minutos, segundos, milisegundos a 0 en la zona horaria local
@@ -124,34 +124,42 @@ function initializeDateSelector() {
 async function fetchAttendanceData() {
     refreshButton.disabled = true; // Deshabilitar botón mientras carga
     loadingMessage.style.display = 'block'; // Mostrar mensaje de carga
+    loadingMessage.style.color = '#f1c40f'; // Restaurar color normal de carga
+    loadingMessage.textContent = 'Cargando datos...'; // Mensaje por defecto
     attendanceTableBody.innerHTML = ''; // Limpiar tabla
 
-    // Obtener la fecha seleccionada del input
-    const selectedDateStr = dateSelector.value; // Formato YYYY-MM-DD
+    // Obtener la fecha seleccionada del input y normalizarla a medianoche local
+    const selectedDateStr = dateSelector.value; 
+    const selectedDate = normalizeDateToLocalMidnight(new Date(selectedDateStr)); 
     
-    // Crear un objeto Date para la fecha seleccionada, asegurándose de que sea en la zona horaria LOCAL
-    // Al usar 'T00:00:00', estamos diciendo que es la medianoche en la zona horaria *del navegador*.
-    const selectedDate = new Date(selectedDateStr + 'T00:00:00'); 
-    
-    // ** Depuración: Fecha seleccionada y su día de la semana LOCAL **
-    console.log(`Fecha seleccionada (desde input, normalizada a medianoche local): ${selectedDate.toISOString()} (Día ${selectedDate.getDay()})`);
+    // Obtener la fecha y hora actual del usuario (para la lógica de "hoy")
+    const now = new Date();
+    const todayNormalized = normalizeDateToLocalMidnight(now);
+    const currentHour = now.getHours(); // Hora actual del usuario
 
-    // Lógica para verificar si es un día de ensayo (usando getDay() para la zona horaria local)
-    const selectedDayOfWeek = selectedDate.getDay(); // Obtiene el día de la semana LOCAL (0=Domingo, 1=Lunes, etc.)
-    if (!REHEARSAL_DAYS.includes(selectedDayOfWeek)) {
+    // Determinar si la fecha seleccionada es hoy, pasada o futura
+    const isSelectedDateToday = selectedDate.getTime() === todayNormalized.getTime();
+    const isSelectedDatePast = selectedDate.getTime() < todayNormalized.getTime();
+    const isSelectedDateFuture = selectedDate.getTime() > todayNormalized.getTime();
+
+    // Lógica para verificar si es un día de ensayo (usando getDay() para la zona horaria local de la fecha seleccionada)
+    const selectedDayOfWeek = selectedDate.getDay(); 
+    const isSelectedDateARehearsalDay = REHEARSAL_DAYS.includes(selectedDayOfWeek);
+
+    if (!isSelectedDateARehearsalDay) {
         attendanceTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #f1c40f;">No hay ensayo en esta fecha. Selecciona Lunes, Miércoles o Viernes.</td></tr>`;
-        totalRegistradosSpan.textContent = allChoirMembers.length; // Muestra el total de miembros aunque no haya ensayo
+        totalRegistradosSpan.textContent = allChoirMembers.length; 
         totalPresentesSpan.textContent = '0';
         totalTardeSpan.textContent = '0';
         totalAusentesSpan.textContent = '0';
         lastUpdatedSpan.textContent = `Última actualización: --`;
         loadingMessage.style.display = 'none';
         refreshButton.disabled = false;
-        return; // Detiene la ejecución si no es un día de ensayo
+        return; 
     }
     // ** Fin Lógica de día de ensayo **
 
-    // Para mostrar la fecha
+    // Para mostrar la fecha completa en el encabezado
     const displayDateFull = selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
 
@@ -167,73 +175,68 @@ async function fetchAttendanceData() {
             
             let presentCountForSelectedDay = 0;
             let lateCountForSelectedDay = 0;
+            let absentCountForSelectedDay = 0; // Se usará para el contador de ausentes
 
-            const registeredMembersOnSelectedDay = new Set(); // Para saber quién YA tiene un registro (P, T, A)
+            const registeredMembersOnSelectedDay = new Set(); 
             const recordsForSelectedDay = []; 
 
-            if (data.length > 1) { // Si hay datos más allá de los encabezados
-                const attendanceEntries = data.slice(1); // Entradas de asistencia (excluyendo encabezados)
+            if (data.length > 1) { 
+                const attendanceEntries = data.slice(1); 
 
                 attendanceEntries.forEach(entry => {
-                    const memberName = entry[0]; // Columna A (Nombre)
-                    const statusFromSheet = entry[1];    // Columna B (Estado como viene de la hoja)
-                    const dateIsoStr = entry[2]; // Columna C (Fecha en formato ISO)
-                    const timeIsoStr = entry[3]; // Columna D (Hora en formato ISO)
+                    const memberName = entry[0]; 
+                    const statusFromSheet = entry[1];    
+                    const dateIsoStr = entry[2]; 
+                    const timeIsoStr = entry[3]; 
 
                     // Normalizar la fecha de la hoja a medianoche LOCAL para comparación
                     const entryDate = normalizeDateToLocalMidnight(dateIsoStr); 
                     
-                    // ** Depuración: Fechas que se están comparando **
-                    // console.log(`Procesando entrada: ${memberName}, Fecha Hoja (ISO): ${dateIsoStr}, Fecha Hoja (Normalizada LOCAL medianoche): ${entryDate.toISOString()}`);
-
-
                     if (entryDate.getTime() === selectedDate.getTime()) {
-                        // console.log(`    -> Coincidencia de fecha para ${memberName}!`); // Debug de coincidencia
                         registeredMembersOnSelectedDay.add(memberName); 
 
                         let statusChar = '';
                         let statusClass = '';
-                        let displayTime = '-'; // Por defecto, si es ausente, la hora es '-'
+                        let displayTime = '-'; 
 
-                        // Obtener el día de la semana y la hora actual para la lógica de Ausentes
-                        const todayForAbsentLogic = new Date(); // Usamos una nueva instancia para evitar posibles conflictos de zona horaria si selectedDate fuera de otro día
-                        const dayOfWeekForAbsentLogic = todayForAbsentLogic.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
-                        const currentHourForAbsentLogic = todayForAbsentLogic.getHours(); // La hora en formato 24h
-
-                        // Días de ensayo: 1 (Lunes), 3 (Miércoles), 5 (Viernes)
-                        const isRehearsalDayForAbsentLogic = (dayOfWeekForAbsentLogic === 1 || dayOfWeekForAbsentLogic === 3 || dayOfWeekForAbsentLogic === 5);
-
-                        // Condición para mostrar 'A' solo después de las 23:00 en días de ensayo
-                        const showAbsentAfterRehearsal = (isRehearsalDayForAbsentLogic && currentHourForAbsentLogic >= 23);
-
-
-                        // MODIFICACIÓN CLAVE AQUÍ: MANEJO DE ESTADOS
-                        if (statusFromSheet === "Presente" || statusFromSheet === "P") {
+                        // LÓGICA CLAVE: Aplicar reglas según si la fecha es HOY, PASADO o FUTURO
+                        if (isSelectedDateFuture) {
+                            // Si la fecha es FUTURA, siempre es guion, no hay asistencia aún
+                            statusChar = '-';
+                            statusClass = '';
+                            displayTime = '-';
+                        } else if (statusFromSheet === "Presente" || statusFromSheet === "P") {
                             statusChar = 'P';
                             statusClass = 'Presente';
                             presentCountForSelectedDay++;
-                            displayTime = formatDisplayTime(new Date(timeIsoStr)); // Solo hay hora si está Presente o Tarde
+                            displayTime = formatDisplayTime(new Date(timeIsoStr)); 
                         } else if (statusFromSheet === "Tarde" || statusFromSheet === "T") {
-                            statusChar = 'T';
-                            statusClass = 'Tarde';
-                            lateCountForSelectedDay++;
-                            displayTime = formatDisplayTime(new Date(timeIsoStr)); // Solo hay hora si está Presente o Tarde
+                            // Si es hoy Y es antes de las 21:16, mostrar guion para 'T'
+                            if (isSelectedDateToday && currentHour < 21) { // 21 equivale a 21:00, así que hasta 20:59. El 21:16 es un tema de redondeo visual, la lógica es la hora exacta.
+                                statusChar = '-';
+                                statusClass = '';
+                                displayTime = '-';
+                            } else {
+                                statusChar = 'T';
+                                statusClass = 'Tarde';
+                                lateCountForSelectedDay++;
+                                displayTime = formatDisplayTime(new Date(timeIsoStr)); 
+                            }
                         } else if (statusFromSheet === "Ausente" || statusFromSheet === "A") {
-                            // Solo mostramos 'A' si es día de ensayo Y después de las 23:00
-                            if (showAbsentAfterRehearsal) {
+                            // Si es hoy Y es antes de las 23:00, mostrar guion para 'A'
+                            if (isSelectedDateToday && currentHour < 23) {
+                                statusChar = '-';
+                                statusClass = '';
+                                displayTime = '-';
+                            } else {
                                 statusChar = 'A';
                                 statusClass = 'Ausente';
-                                // No sumamos a ausentes aquí, se calculará al final.
-                                // La hora ya está en '-' por defecto
-                            } else {
-                                // Si es ausente pero no cumple la condición de día/hora, mostrar guion
-                                statusChar = '-';
-                                statusClass = ''; // No aplica ninguna clase de color
-                                displayTime = '-';
+                                // absentCountForSelectedDay++; // Lo contamos al final con el filtro para evitar doble conteo
+                                displayTime = '-'; 
                             }
                         } else { // Para cualquier otro valor inesperado en la hoja
                             statusChar = '-';
-                            statusClass = ''; // No aplica ninguna clase de color
+                            statusClass = ''; 
                             displayTime = '-';
                         }
                         
@@ -247,8 +250,6 @@ async function fetchAttendanceData() {
                             time: displayTime, 
                             section: section 
                         });
-                    } else {
-                            // console.log(`    -> NO Coincidencia de fecha para ${memberName}. Fecha Hoja (normalizada LOCAL): ${entryDate.toISOString()}, Fecha Seleccionada (normalizada LOCAL): ${selectedDate.toISOString()}`); // Debug sin coincidencia
                     }
                 });
             }
@@ -256,17 +257,20 @@ async function fetchAttendanceData() {
             // Determinar los miembros ausentes que NO tienen registro en la hoja para el día SELECCIONADO
             const trulyAbsentMembers = allChoirMembers.filter(memberObj => !registeredMembersOnSelectedDay.has(memberObj.name));
             trulyAbsentMembers.forEach(memberObj => {
-                // Aplicar la misma lógica de día/hora para los ausentes "realmente" ausentes
-                const todayForAbsentLogic = new Date();
-                const dayOfWeekForAbsentLogic = todayForAbsentLogic.getDay();
-                const currentHourForAbsentLogic = todayForAbsentLogic.getHours();
-                const isRehearsalDayForAbsentLogic = (dayOfWeekForAbsentLogic === 1 || dayOfWeekForAbsentLogic === 3 || dayOfWeekForAbsentLogic === 5);
-                const showAbsentAfterRehearsal = (isRehearsalDayForAbsentLogic && currentHourForAbsentLogic >= 23);
-
                 let statusCharForAbsent = '-';
                 let statusClassForAbsent = '';
 
-                if (showAbsentAfterRehearsal) {
+                // Aplicar la misma lógica de día/hora para los ausentes "realmente" ausentes
+                if (isSelectedDateFuture) {
+                    // Si la fecha es FUTURA, siempre es guion para no registrados
+                    statusCharForAbsent = '-';
+                    statusClassForAbsent = '';
+                } else if (isSelectedDateToday && currentHour < 23) {
+                    // Si es hoy y antes de las 23:00, mostrar guion
+                    statusCharForAbsent = '-';
+                    statusClassForAbsent = '';
+                } else {
+                    // Para fechas pasadas o hoy después de las 23:00, estos son ausentes
                     statusCharForAbsent = 'A';
                     statusClassForAbsent = 'Ausente';
                 }
@@ -281,26 +285,22 @@ async function fetchAttendanceData() {
             });
 
             // --- LÓGICA DE ORDENAMIENTO DE LA TABLA ---
-            // Ordenar: 1. Por cuerda, 2. Alfabéticamente por nombre
             recordsForSelectedDay.sort((a, b) => {
-                // Primero, ordenar por el orden definido de las cuerdas
                 if (sectionOrder[a.section] !== sectionOrder[b.section]) {
                     return sectionOrder[a.section] - sectionOrder[b.section];
                 }
-                // Si están en la misma cuerda, ordenar alfabéticamente por nombre
                 return a.name.localeCompare(b.name); 
             });
 
             // --- Llenar la tabla con encabezados de cuerda ---
             let currentSection = '';
             recordsForSelectedDay.forEach(rowData => {
-                // Si la cuerda cambia, inserta una fila de encabezado de cuerda
                 if (rowData.section !== currentSection) {
                     currentSection = rowData.section;
                     const headerRow = attendanceTableBody.insertRow();
-                    headerRow.classList.add('section-header'); // Para darle estilo CSS
+                    headerRow.classList.add('section-header'); 
                     const headerCell = headerRow.insertCell(0);
-                    headerCell.colSpan = 3; // ¡AJUSTADO A 3 COLUMNAS! (Nombre, Estado, Hora)
+                    headerCell.colSpan = 3; 
                     headerCell.textContent = currentSection;
                 }
 
@@ -308,41 +308,36 @@ async function fetchAttendanceData() {
                 row.insertCell(0).textContent = rowData.name; 
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
-                // MODIFICACIÓN: Aquí se asegura que las clases se apliquen para el CSS de colores
-                if (rowData.statusClass) { // Solo añade la clase si no está vacía
+                if (rowData.statusClass) { 
                     statusCell.classList.add('status-cell', `status-${rowData.statusClass}`);
                 }
-                row.insertCell(2).textContent = rowData.time; // La hora ahora va en el índice 2
+                row.insertCell(2).textContent = rowData.time; 
             });
 
-            // Actualizar contadores
-            totalRegistradosSpan.textContent = allChoirMembers.length; // Total de miembros en la lista
+            // Actualizar contadores FINALES
+            totalRegistradosSpan.textContent = allChoirMembers.length; 
             totalPresentesSpan.textContent = presentCountForSelectedDay;
             totalTardeSpan.textContent = lateCountForSelectedDay;
-            // Calcular Ausentes: Total de miembros - (Presentes + Tarde)
-            // Esta cuenta debe reflejar los ausentes que se muestran como 'A' en la tabla.
-            // Para ello, contamos cuántos miembros tienen statusChar 'A' en recordsForSelectedDay
-            const displayedAbsentCount = recordsForSelectedDay.filter(record => record.statusChar === 'A').length;
-            totalAusentesSpan.textContent = displayedAbsentCount;
+            
+            // Recalcular ausentes basado en lo que realmente se mostró como 'A'
+            absentCountForSelectedDay = recordsForSelectedDay.filter(record => record.statusChar === 'A').length;
+            totalAusentesSpan.textContent = absentCountForSelectedDay;
 
-            lastUpdatedSpan.textContent = `Última actualización: ${formatDisplayTime(new Date())}`; // Usa el nuevo formato de hora
+            lastUpdatedSpan.textContent = `Última actualización: ${formatDisplayTime(new Date())}`; 
 
         } else {
             console.error('Error al obtener datos:', result.message);
-            // Reemplazado alert() con un mensaje en la interfaz
             loadingMessage.textContent = 'Error al cargar la asistencia: ' + result.message;
-            loadingMessage.style.color = '#e74c3c'; // Rojo para error
+            loadingMessage.style.color = '#e74c3c'; 
             loadingMessage.style.display = 'block';
         }
     } catch (error) {
         console.error('Error de conexión o de red:', error);
-        // Reemplazado alert() con un mensaje en la interfaz
         loadingMessage.textContent = 'No se pudieron cargar los datos. Revisa tu conexión a internet o la URL del script.';
-        loadingMessage.style.color = '#e74c3c'; // Rojo para error
+        loadingMessage.style.color = '#e74c3c'; 
         loadingMessage.style.display = 'block';
     } finally {
-        // Ocultar mensaje de carga solo si no es un mensaje de error persistente
-        if (loadingMessage.style.color !== 'rgb(231, 76, 60)') { // Verifica si el color no es rojo de error
+        if (loadingMessage.style.color !== 'rgb(231, 76, 60)') { 
              loadingMessage.style.display = 'none'; 
         }
         refreshButton.disabled = false; 
@@ -352,5 +347,5 @@ async function fetchAttendanceData() {
 // Event Listeners y Inicialización
 refreshButton.addEventListener('click', fetchAttendanceData);
 initializeDateSelector();
-updateCurrentTime(); // Llama a la función para mostrar la hora al cargar
-fetchAttendanceData(); // Carga los datos al iniciar la página
+updateCurrentTime(); 
+fetchAttendanceData(); 
