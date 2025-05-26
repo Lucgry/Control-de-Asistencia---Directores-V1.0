@@ -1,5 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEVkvQ7eCh0FT9pPHlLL7veqTfOiyp7_0uGCOx6qxuKIeXXheXL-62IQIopz7weQ/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
 
 // Días de la semana de ensayo (0=Domingo, 1=Lunes, 2=Martes, etc.)
 const REHEARSAL_DAYS = [1, 3, 5]; // Lunes, Miércoles, Viernes
