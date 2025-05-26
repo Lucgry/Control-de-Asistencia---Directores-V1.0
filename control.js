@@ -1,5 +1,5 @@
 // ** ¡URL CORRECTA DE GOOGLE APPS SCRIPT PARA LECTURA! **
-const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbzqUQLauJqzWo6rZPEkYLpKWLWA_0EFjPAUljTPmL4aSZdk7VtBTsyP5sbfDfUcVqPG/exec'; 
+const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbxYLCxEVkvQ7eCh0FT9pPHlLL7veqTfOiyp7_0uGCOx6qxuKIeXXheXL-62IQIopz7weQ/exec'; 
 
 const attendanceTableBody = document.querySelector('#attendance-table tbody');
 const totalRegistradosSpan = document.getElementById('total-registrados');
@@ -124,9 +124,8 @@ async function fetchAttendanceData() {
     const selectedDate = new Date(selectedDateStr + 'T00:00:00.000Z'); 
     console.log(`Fecha seleccionada (normalizada a UTC medianoche para comparación): ${selectedDate.toISOString()}`); // Debug
 
-    // *** MODIFICACIÓN AQUÍ: Para mostrar la fecha correctamente en el H2 ***
-    // Se crea un objeto Date para la fecha seleccionada que JavaScript interpretará en la zona horaria local.
-    // Añadir una hora central (T12:00:00) ayuda a evitar desfases por zona horaria en los límites del día.
+    // Para mostrar la fecha, creamos un objeto Date que JavaScript interpretará en la zona horaria local.
+    // Esto asegura que la fecha mostrada sea exactamente la seleccionada, sin desfases por UTC.
     const dateForDisplay = new Date(selectedDateStr + 'T12:00:00'); 
     const displayDateFull = dateForDisplay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     currentDateDisplay.textContent = `Asistencia para: ${displayDateFull}`;
@@ -190,8 +189,8 @@ async function fetchAttendanceData() {
                             name: memberName,
                             statusChar: statusChar,
                             statusClass: statusClass,
-                            date: formatDisplayDate(new Date(dateIsoStr)), // Usa el nuevo formato de fecha
-                            time: formatDisplayTime(new Date(timeIsoStr)), // Usa el nuevo formato de hora
+                            // date: formatDisplayDate(new Date(dateIsoStr)), // LA COLUMNA FECHA FUE ELIMINADA INTENCIONALMENTE
+                            time: formatDisplayTime(new Date(timeIsoStr)), 
                             section: section 
                         });
                     } else {
@@ -207,7 +206,7 @@ async function fetchAttendanceData() {
                     name: memberObj.name,
                     statusChar: 'A',
                     statusClass: 'Ausente',
-                    date: formatDisplayDate(new Date(selectedDateStr)), // Usa el nuevo formato de fecha para los ausentes
+                    // date: formatDisplayDate(new Date(selectedDateStr)), // LA COLUMNA FECHA FUE ELIMINADA INTENCIONALMENTE
                     time: '-',
                     section: memberObj.section 
                 });
@@ -233,7 +232,7 @@ async function fetchAttendanceData() {
                     const headerRow = attendanceTableBody.insertRow();
                     headerRow.classList.add('section-header'); // Para darle estilo CSS
                     const headerCell = headerRow.insertCell(0);
-                    headerCell.colSpan = 3; // Para que ocupe todas las columnas
+                    headerCell.colSpan = 3; // ¡AJUSTADO A 3 COLUMNAS! (Nombre, Estado, Hora)
                     headerCell.textContent = currentSection;
                 }
 
@@ -242,7 +241,8 @@ async function fetchAttendanceData() {
                 const statusCell = row.insertCell(1); 
                 statusCell.textContent = rowData.statusChar;
                 statusCell.classList.add('status-cell', rowData.statusClass);
-                row.insertCell(3).textContent = rowData.time; 
+                // ESTA ES LA LÍNEA MODIFICADA POR EL ERROR IndexSizeError
+                row.insertCell(2).textContent = rowData.time; // LA HORA AHORA VA EN EL ÍNDICE 2
             });
 
             // Actualizar contadores
