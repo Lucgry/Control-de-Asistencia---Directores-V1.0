@@ -111,16 +111,17 @@ h2 {
 .summary-item.tarde span { color: #f1c40f; } /* ¡CORREGIDO: Amarillo para Tarde! */
 .summary-item.ausentes span { color: #c0392b; }
 
-.summary-item span {
+/* REPETICION DE REGLAS DE ARRIBA - NO NECESARIAS, PERO LAS DEJO YA QUE ESTABAN */
+/* .summary-item span {
     font-size: 2em;
     font-weight: 700;
     margin-top: 5px;
-}
+} */
+/* .summary-item.registrados { color: #f1c40f; }
+.summary-item.presentes { color: #27ae60; }
+.summary-item.tarde { color: #9b59b6; }
+.summary-item.ausentes { color: #c0392b; } */
 
-.summary-item.registrados { color: #f1c40f; } /* Amarillo */
-.summary-item.presentes { color: #27ae60; } /* Verde para Presentes */
-.summary-item.tarde { color: #9b59b6; } /* Morado (Amatista) */
-.summary-item.ausentes { color: #c0392b; } /* Nuevo color: Rojo más oscuro */
 
 /* Contenedor de la tabla para permitir el scroll horizontal en móviles */
 .table-wrapper {
@@ -135,42 +136,42 @@ table {
     width: 100%;
     border-collapse: collapse;
     background-color: #2c3e50;
-    /* ELIMINADO: table-layout: fixed; --> Permite que el ancho de las columnas se ajuste al contenido */
+    /* Hemos eliminado table-layout: fixed; en interacciones anteriores */
 }
 
 th, td {
     padding: 12px 5px; /* Padding ajustado */
     text-align: left;
     border-bottom: 1px solid #34495e;
-    /* ELIMINADO: word-wrap: break-word; y white-space: normal; */
     vertical-align: middle; /* Alinea el contenido verticalmente en el centro */
+    /* Hemos eliminado word-wrap: break-word; y white-space: normal; */
 }
 
-/* Definición de Anchos para cada Columna (para escritorio y móviles) */
-/* La columna de Nombre ya no tendrá un ancho fijo, se ajustará al contenido */
-th:nth-child(1), /* Columna de Nombre */
+/* **AJUSTES CLAVE AQUÍ PARA EL ANCHO DE COLUMNAS** */
+/* Columna de Nombre: Se ajustará automáticamente al contenido */
+th:nth-child(1), /* Aunque no haya th, es buena práctica para futuras cabeceras */
 td:nth-child(1) {
-    /* ELIMINADO: width: 35%; */
-    white-space: nowrap; /* Fuerza a que el texto se quede en una sola línea */
+    /* ELIMINAMOS TODOS los 'width' y 'white-space: nowrap;' */
+    /* El navegador ajustará el ancho a lo justo para el nombre más largo */
 }
 
-th:nth-child(2), /* Columna de Estado */
+/* Columna de Estado: Con un ancho pequeño, centrado */
+th:nth-child(2), 
 td:nth-child(2) {
-    width: 20%; /* Mantenemos un ancho tentativo para el estado, se ajustará mejor sin fixed */
-    text-align: center; /* Centra el texto del estado */
+    /* Eliminamos 'width' si queremos que se ajuste aún más dinámicamente */
+    text-align: center; /* Mantenemos centrado */
 }
 
-th:nth-child(3), /* Columna de Fecha */
+/* Columna de Hora: Con un ancho pequeño, centrado */
+th:nth-child(3), 
 td:nth-child(3) {
-    width: 25%; /* Mantenemos un ancho tentativo para la fecha */
-    text-align: center; /* Centra el texto de la fecha */
+    /* Eliminamos 'width' si queremos que se ajuste aún más dinámicamente */
+    text-align: center; /* Mantenemos centrado */
 }
 
-th:nth-child(4), /* Columna de Hora */
-td:nth-child(4) {
-    width: 20%; /* Mantenemos un ancho tentativo para la hora */
-    text-align: center; /* Centra el texto de la hora */
-}
+/* ELIMINAR ESTAS REGLAS SI ESTABAN AHÍ POR COLUMNAS 3 y 4 */
+/* th:nth-child(4), td:nth-child(4) { ... } */
+
 
 th {
     background-color: #34495e;
@@ -207,114 +208,4 @@ tr.section-header {
     font-weight: 700;
     text-align: center;
     font-size: 1.2em;
-    position: sticky; /* Permite que el encabezado de sección se "pegue" al hacer scroll */
-    top: 0; /* Se pega en la parte superior del contenedor de la tabla */
-    z-index: 1; /* Asegura que esté por encima de otras filas al hacer scroll */
-}
-tr.section-header td {
-    border-bottom: 2px solid #f1c40f; /* Línea separadora */
-    padding: 10px 15px; /* Espaciado */
-}
-
-.loading-message {
-    color: #f1c40f;
-    margin-top: 20px;
-    font-size: 1.1em;
-}
-
-button {
-    background-color: #f1c40f;
-    color: #2c3e50;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 5px;
-    font-size: 1.1em;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 25px;
-}
-
-button:hover {
-    background-color: #e67e22;
-}
-
-button:disabled {
-    background-color: #7f8c8d;
-    cursor: not-allowed;
-}
-
-#last-updated {
-    margin-top: 25px;
-    font-size: 0.9em;
-    color: #bdc3c7;
-}
-
-/* Media Query para pantallas más pequeñas (ej. celulares) */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px;
-    }
-
-    h1 {
-        font-size: 1.8em;
-    }
-
-    #current-time {
-        font-size: 1.8em;
-    }
-
-    .summary-grid {
-        grid-template-columns: 1fr 1fr; /* 2 columnas en lugar de 4 en móvil */
-    }
-
-    .summary-item {
-        font-size: 0.9em;
-        padding: 10px;
-    }
-    .summary-item span {
-        font-size: 1.6em;
-    }
-
-    /* Ajuste de padding y font-size para celdas de tabla en móvil */
-    th, td {
-        padding: 8px 3px; /* Padding aún más reducido para móvil */
-        font-size: 0.85em;
-    }
-
-    /* En móviles, la columna de nombre se ajustará al contenido.
-       Las otras columnas pueden tener anchos mínimos o flexibles. */
-    th:nth-child(1),
-    td:nth-child(1) {
-        /* No necesitamos un width fijo aquí, 'white-space: nowrap;' se encargará */
-    }
-    th:nth-child(2),
-    td:nth-child(2) {
-        width: 25%; /* Ajusta el ancho para el estado en móvil */
-    }
-    th:nth-child(3),
-    td:nth-child(3) {
-        width: 25%; /* Ajusta el ancho para la fecha en móvil */
-    }
-    th:nth-child(4),
-    td:nth-child(4) {
-        width: 20%; /* Ajusta el ancho para la hora en móvil */
-    }
-
-    tr.section-header td {
-        font-size: 1em;
-        padding: 8px 10px; /* Ajuste para encabezados de sección en móviles */
-    }
-
-    button {
-        padding: 10px 20px;
-        font-size: 1em;
-    }
-}
-
-/* Media Query para pantallas muy pequeñas */
-@media (max-width: 480px) {
-    .summary-grid {
-        grid-template-columns: 1fr; /* Una sola columna en el resumen para pantallas muy estrechas */
-    }
-}
+    position: sticky; /* Permite que el encabezado de sección se "pegue" al hacer
