@@ -93,34 +93,26 @@ h2 {
     display: block; /* Para que ocupe su propia línea */
 }
 
+/* **COLORES CORREGIDOS AQUÍ** */
 /* Colores definitivos para cada categoría */
-.summary-item.registrados,
-.summary-item.tarde { /* Registrados y Tarde irán en Amarillo */
-    color: #f1c40f; 
+.summary-item.registrados { /* Registrados en Azul */
+    color: #3498db; /* Un azul que se ve bien en el fondo oscuro */
 }
 .summary-item.presentes { /* Presentes en Verde */
     color: #27ae60; 
 }
-.summary-item.ausentes { /* Ausentes en Rojo más oscuro */
-    color: #c0392b; 
+.summary-item.tarde { /* Tarde en Amarillo */
+    color: #f1c40f; 
+}
+.summary-item.ausentes { /* Ausentes en Rojo */
+    color: #e74c3c; /* Un rojo claro para que se vea bien */
 }
 
-/* Para asegurar que los números también tengan el color correcto (aunque ya lo tendrían por herencia) */
-.summary-item.registrados span { color: #f1c40f; }
+/* Para asegurar que los números también tengan el color correcto */
+.summary-item.registrados span { color: #3498db; }
 .summary-item.presentes span { color: #27ae60; }
-.summary-item.tarde span { color: #f1c40f; } /* ¡CORREGIDO: Amarillo para Tarde! */
-.summary-item.ausentes span { color: #c0392b; }
-
-/* REPETICION DE REGLAS DE ARRIBA - NO NECESARIAS, PERO LAS DEJO YA QUE ESTABAN */
-/* .summary-item span {
-    font-size: 2em;
-    font-weight: 700;
-    margin-top: 5px;
-} */
-/* .summary-item.registrados { color: #f1c40f; }
-.summary-item.presentes { color: #27ae60; }
-.summary-item.tarde { color: #9b59b6; }
-.summary-item.ausentes { color: #c0392b; } */
+.summary-item.tarde span { color: #f1c40f; }
+.summary-item.ausentes span { color: #e74c3c; }
 
 
 /* Contenedor de la tabla para permitir el scroll horizontal en móviles */
@@ -147,31 +139,24 @@ th, td {
     /* Hemos eliminado word-wrap: break-word; y white-space: normal; */
 }
 
-/* **AJUSTES CLAVE AQUÍ PARA EL ANCHO DE COLUMNAS** */
-/* Columna de Nombre: Se ajustará automáticamente al contenido */
-th:nth-child(1), /* Aunque no haya th, es buena práctica para futuras cabeceras */
+/* Ajustes para que las columnas se adapten a su contenido */
+/* La columna de Nombre se ajustará automáticamente al contenido */
+th:nth-child(1), 
 td:nth-child(1) {
-    /* ELIMINAMOS TODOS los 'width' y 'white-space: nowrap;' */
-    /* El navegador ajustará el ancho a lo justo para el nombre más largo */
+    /* No se especifica 'width' ni 'white-space: nowrap;' para permitir ajuste dinámico */
 }
 
-/* Columna de Estado: Con un ancho pequeño, centrado */
+/* Columna de Estado: Centrada */
 th:nth-child(2), 
 td:nth-child(2) {
-    /* Eliminamos 'width' si queremos que se ajuste aún más dinámicamente */
-    text-align: center; /* Mantenemos centrado */
+    text-align: center; 
 }
 
-/* Columna de Hora: Con un ancho pequeño, centrado */
+/* Columna de Hora: Centrada */
 th:nth-child(3), 
 td:nth-child(3) {
-    /* Eliminamos 'width' si queremos que se ajuste aún más dinámicamente */
-    text-align: center; /* Mantenemos centrado */
+    text-align: center; 
 }
-
-/* ELIMINAR ESTAS REGLAS SI ESTABAN AHÍ POR COLUMNAS 3 y 4 */
-/* th:nth-child(4), td:nth-child(4) { ... } */
-
 
 th {
     background-color: #34495e;
@@ -193,19 +178,125 @@ tbody tr:hover {
     background-color: #44607d;
 }
 
+/* **COLORES DE ESTADO EN TABLA CORREGIDOS AQUÍ** */
 /* Estilos de color para la columna Estado */
 .status-cell {
     font-weight: bold;
 }
-.status-cell.status-Presente { color: #27ae60; }
-.status-cell.status-Tarde { color: #9b59b6; } /* Morado (Amatista) */
-.status-cell.status-Ausente { color: #c0392b; } /* Nuevo color: Rojo más oscuro */
+.status-cell.status-Presente { color: #27ae60; } /* Verde para Presente */
+.status-cell.status-Tarde { color: #f1c40f; } /* Amarillo para Tarde */
+.status-cell.status-Ausente { color: #e74c3c; } /* Rojo para Ausente */
 
-/* Estilos para los encabezados de cuerda (nuevos estilos) */
+/* Estilos para los encabezados de cuerda */
 tr.section-header {
-    background-color: #44607d; /* Un color de fondo que contraste */
-    color: #f1c40f; /* Amarillo para el texto */
+    background-color: #44607d; 
+    color: #f1c40f; 
     font-weight: 700;
     text-align: center;
     font-size: 1.2em;
-    position: sticky; /* Permite que el encabezado de sección se "pegue" al hacer
+    position: sticky; 
+    top: 0; 
+    z-index: 1; 
+}
+tr.section-header td {
+    border-bottom: 2px solid #f1c40f; 
+    padding: 10px 15px; 
+}
+
+.loading-message {
+    color: #f1c40f;
+    margin-top: 20px;
+    font-size: 1.1em;
+}
+
+button {
+    background-color: #f1c40f;
+    color: #2c3e50;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 25px;
+}
+
+button:hover {
+    background-color: #e67e22;
+}
+
+button:disabled {
+    background-color: #7f8c8d;
+    cursor: not-allowed;
+}
+
+#last-updated {
+    margin-top: 25px;
+    font-size: 0.9em;
+    color: #bdc3c7;
+}
+
+/* Media Query para pantallas más pequeñas (ej. celulares) */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    #current-time {
+        font-size: 1.8em;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr 1fr; /* 2 columnas en lugar de 4 en móvil */
+    }
+
+    .summary-item {
+        font-size: 0.9em;
+        padding: 10px;
+    }
+    .summary-item span {
+        font-size: 1.6em;
+    }
+
+    /* Ajuste de padding y font-size para celdas de tabla en móvil */
+    th, td {
+        padding: 8px 3px; /* Padding aún más reducido para móvil */
+        font-size: 0.85em;
+    }
+
+    /* En móviles, las columnas se ajustarán automáticamente sin anchos fijos */
+    th:nth-child(1),
+    td:nth-child(1) {
+        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+    }
+    th:nth-child(2),
+    td:nth-child(2) {
+        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+    }
+    th:nth-child(3),
+    td:nth-child(3) {
+        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+    }
+
+    tr.section-header td {
+        font-size: 1em;
+        padding: 8px 10px; /* Ajuste para encabezados de sección en móviles */
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+}
+
+/* Media Query para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .summary-grid {
+        grid-template-columns: 1fr; /* Una sola columna en el resumen para pantallas muy estrechas */
+    }
+}
