@@ -93,7 +93,7 @@ h2 {
     display: block; /* Para que ocupe su propia línea */
 }
 
-/* **COLORES CORREGIDOS AQUÍ** */
+/* **COLORES CORREGIDOS** */
 /* Colores definitivos para cada categoría */
 .summary-item.registrados { /* Registrados en Azul */
     color: #3498db; /* Un azul que se ve bien en el fondo oscuro */
@@ -128,7 +128,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     background-color: #2c3e50;
-    /* Hemos eliminado table-layout: fixed; en interacciones anteriores */
+    /* MUY IMPORTANTE: table-layout: fixed; DEBE ESTAR AUSENTE/COMENTADO para auto-ajuste */
 }
 
 th, td {
@@ -136,26 +136,25 @@ th, td {
     text-align: left;
     border-bottom: 1px solid #34495e;
     vertical-align: middle; /* Alinea el contenido verticalmente en el centro */
-    /* Hemos eliminado word-wrap: break-word; y white-space: normal; */
 }
 
-/* Ajustes para que las columnas se adapten a su contenido */
-/* La columna de Nombre se ajustará automáticamente al contenido */
-th:nth-child(1), 
+/* **AJUSTES CLAVE AQUÍ PARA EL ANCHO DE COLUMNAS** */
+/* Columna de Nombre: Se ajustará automáticamente al contenido más largo */
+th:nth-child(1), /* Incluyo th aunque no los tengas visibles */
 td:nth-child(1) {
-    /* No se especifica 'width' ni 'white-space: nowrap;' para permitir ajuste dinámico */
+    /* ELIMINAMOS cualquier 'width' o 'white-space: nowrap;' de aquí */
 }
 
-/* Columna de Estado: Centrada */
+/* Columna de Estado: Con un ancho pequeño, centrado */
 th:nth-child(2), 
 td:nth-child(2) {
-    text-align: center; 
+    text-align: center; /* Mantenemos centrado */
 }
 
-/* Columna de Hora: Centrada */
+/* Columna de Hora: Con un ancho pequeño, centrado */
 th:nth-child(3), 
 td:nth-child(3) {
-    text-align: center; 
+    text-align: center; /* Mantenemos centrado */
 }
 
 th {
@@ -178,7 +177,7 @@ tbody tr:hover {
     background-color: #44607d;
 }
 
-/* **COLORES DE ESTADO EN TABLA CORREGIDOS AQUÍ** */
+/* **COLORES DE ESTADO EN TABLA CORREGIDOS** */
 /* Estilos de color para la columna Estado */
 .status-cell {
     font-weight: bold;
@@ -272,15 +271,15 @@ button:disabled {
     /* En móviles, las columnas se ajustarán automáticamente sin anchos fijos */
     th:nth-child(1),
     td:nth-child(1) {
-        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+        /* Se ajustará automáticamente */
     }
     th:nth-child(2),
     td:nth-child(2) {
-        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+        /* Se ajustará automáticamente */
     }
     th:nth-child(3),
     td:nth-child(3) {
-        /* No necesitamos un width fijo aquí, se ajustará automáticamente */
+        /* Se ajustará automáticamente */
     }
 
     tr.section-header td {
