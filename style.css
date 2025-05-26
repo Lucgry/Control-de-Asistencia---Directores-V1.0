@@ -173,24 +173,19 @@ tbody tr:hover {
     background-color: #44607d;
 }
 
-/* COLORES DE ESTADO EN TABLA - ¡MODIFICADOS SEGÚN TU PEDIDO! */
+/* COLORES DE ESTADO EN TABLA - Solo color de texto */
 .status-cell {
-    font-weight: bold;
-    padding: 3px 6px; /* Añadido padding para que parezca un "tag" */
-    border-radius: 4px; /* Añadido border-radius para esquinas redondeadas */
-    display: inline-block; /* Para que el padding y border-radius se apliquen correctamente */
+    font-weight: bold; /* Mantener la negrita si quieres */
+    /* Eliminar o comentar: padding, border-radius, display: inline-block */
 }
 .status-cell.status-Presente {
-    background-color: #4CAF50; /* Verde */
-    color: white; /* Texto blanco para contraste */
+    color: #27ae60; /* Verde de tu resumen de "Presentes" */
 }
 .status-cell.status-Tarde {
-    background-color: #FFEB3B; /* Amarillo */
-    color: #333; /* Texto oscuro para contraste en amarillo */
+    color: #f1c40f; /* Amarillo de tu resumen de "Tarde" */
 }
 .status-cell.status-Ausente {
-    background-color: #F44336; /* Rojo */
-    color: white; /* Texto blanco para contraste */
+    color: #e74c3c; /* Rojo de tu resumen de "Ausentes" */
 }
 
 
