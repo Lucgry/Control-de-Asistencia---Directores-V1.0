@@ -98,7 +98,7 @@ h2 {
     color: #3498db; /* Un azul que se ve bien en el fondo oscuro */
 }
 .summary-item.presentes { /* Presentes en Verde */
-    color: #27ae60;
+    color: #27ae60; /* Verde */
 }
 .summary-item.tarde { /* Tarde en Amarillo */
     color: #f1c40f;
