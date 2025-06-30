@@ -53,6 +53,7 @@ const allChoirMembersBySection = {
         "Goytia Abel",
         "Ibarra Wally",
         "Jardín Augusto",
+        "López Sebastián",
         "Rocha Ariel",
         "Villafañe Valentín"
     ].sort((a, b) => a.localeCompare(b))
