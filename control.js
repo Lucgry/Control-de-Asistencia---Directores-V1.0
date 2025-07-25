@@ -26,7 +26,6 @@ const allChoirMembersBySection = {
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Romina Andrea",
         "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
@@ -41,7 +40,6 @@ const allChoirMembersBySection = {
     ].sort((a, b) => a.localeCompare(b)),
     "Tenores": [
         "Groppa Octavio",
-        "Liendro Gabriel",
         "Otero Oscar",
         "Roldán Cristian",
         "Silva G. José",
