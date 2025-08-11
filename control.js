@@ -20,13 +20,13 @@ const dateSelector = document.getElementById('date-selector');
 // ¡IMPORTANTE! Asegúrate de que esta lista sea EXACTA con los nombres en tu planilla.
 const allChoirMembersBySection = {
     "Sopranos": [
+        "Andrea Romina",
         "Aparicio Rocío",
         "Aramayo Valentina",
         "Evangelista Maira",
         "Ferri Mónica",
         "Gallardo Cintia",
         "Perez Gesualdo Anahi",
-        "Ruiz Paola",
         "Solís Lucero",
         "Suárez Daniela"
     ].sort((a, b) => a.localeCompare(b)),
@@ -42,9 +42,8 @@ const allChoirMembersBySection = {
         "Groppa Octavio",
         "Otero Oscar",
         "Roldán Cristian",
-        "Silva G. José",
         "Valdez Julio",
-        "Velárdez José"
+        
     ].sort((a, b) => a.localeCompare(b)),
     "Bajos": [
         "Colqui Marcelo",
@@ -351,3 +350,4 @@ refreshButton.addEventListener('click', fetchAttendanceData);
 initializeDateSelector();
 updateCurrentTime(); 
 fetchAttendanceData(); 
+
