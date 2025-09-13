@@ -49,7 +49,6 @@ const allChoirMembersBySection = {
         "Colqui Marcelo",
         "Goytia Abel",
         "Ibarra Wally",
-        "Jardín Augusto",
         "López Sebastián",
         "Rocha Ariel",
         "Villafañe Valentín"
@@ -350,4 +349,5 @@ refreshButton.addEventListener('click', fetchAttendanceData);
 initializeDateSelector();
 updateCurrentTime(); 
 fetchAttendanceData(); 
+
 
